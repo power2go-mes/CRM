@@ -56,7 +56,7 @@ export default defineConfig({
           ),
         }
       : undefined,
-  base: "./",
+  base: "/",
   esbuild: {
     keepNames: true,
   },

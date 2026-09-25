@@ -88,6 +88,9 @@ export type Lead = {
   status: "new" | "contacted" | "qualified" | "unqualified" | "converted";
   notes?: string;
   sales_id: Identifier;
+  /** Legacy owner compatibility only. New code uses owner_sales_id / assigned_bdo_id. */
+  owner_sales_id: Identifier;
+  assigned_bdo_id?: Identifier | null;
   region_id?: Identifier | null;
   created_at: string;
   updated_at: string;
@@ -98,6 +101,7 @@ export type Lead = {
   unqualified_reason?: string | null;
   unqualified_at?: string | null;
   owner_name?: string;
+  assigned_bdo_name?: string;
   region_name?: string;
 } & Pick<RaRecord, "id">;
 

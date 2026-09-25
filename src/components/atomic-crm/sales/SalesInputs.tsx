@@ -32,30 +32,25 @@ export function SalesInputs({ includePassword = false }: { includePassword?: boo
   const regionId = useWatch({ name: "region_id" });
   const reportsToUserId = useWatch({ name: "reports_to_user_id" });
   const managerRole: Partial<Record<CrmRole, CrmRole>> = {
+    head_of_sales: "super_admin",
+    rsm: "head_of_sales",
     ssm: "rsm",
-    asm: "rsm",
+    asm: "ssm",
     bdo: "asm",
   };
   const eligibleManagers = managers.filter((manager) => {
     if (!role || manager.role !== managerRole[role]) return false;
-    return (
-      String(manager.region_id) === String(regionId)
-    );
+    return !["ssm", "asm", "bdo"].includes(role) || String(manager.region_id) === String(regionId);
   });
   const requiresRegion = role != null && ["rsm", "ssm", "asm", "bdo"].includes(role);
-  const requiresManager = role === "bdo";
-  const assignsToRegionalManager = role === "ssm" || role === "asm";
+  const requiresManager = role != null && role !== "super_admin";
 
   useEffect(() => {
     if (role === "super_admin" || role === "head_of_sales") {
       setValue("region_id", null);
     }
     if (!requiresManager) {
-      if (assignsToRegionalManager) {
-        setValue("reports_to_user_id", eligibleManagers[0]?.user_id ?? null);
-      } else {
-        setValue("reports_to_user_id", null);
-      }
+      setValue("reports_to_user_id", null);
       return;
     }
     if (
@@ -65,7 +60,7 @@ export function SalesInputs({ includePassword = false }: { includePassword?: boo
     ) {
       setValue("reports_to_user_id", null);
     }
-  }, [assignsToRegionalManager, eligibleManagers, managers.length, reportsToUserId, requiresManager, role, setValue]);
+  }, [eligibleManagers, managers.length, reportsToUserId, requiresManager, role, setValue]);
 
   return (
     <div className="space-y-4 w-full">
@@ -114,7 +109,7 @@ export function SalesInputs({ includePassword = false }: { includePassword?: boo
       {requiresManager ? (
         <SelectInput
           source="reports_to_user_id"
-          label="Associated ASM"
+          label={role === "bdo" ? "Associated ASM" : "Reports To"}
           emptyText={regionId ? "Select a manager" : "Select a region first"}
           choices={eligibleManagers.map((manager) => ({
             id: manager.user_id,
@@ -123,15 +118,6 @@ export function SalesInputs({ includePassword = false }: { includePassword?: boo
           validate={required()}
           helperText={false}
         />
-      ) : null}
-      {assignsToRegionalManager ? (
-        <p className={eligibleManagers.length ? "text-sm text-muted-foreground" : "text-sm text-destructive"}>
-          {eligibleManagers.length
-            ? `Automatically assigned to the RSM for this region: ${eligibleManagers[0].first_name} ${eligibleManagers[0].last_name}.`
-            : regionId
-              ? "Create or activate an RSM for this region before creating this user."
-              : "Select a region to assign its RSM automatically."}
-        </p>
       ) : null}
       <BooleanInput
         source="disabled"
