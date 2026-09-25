@@ -1,0 +1,11 @@
+<svg width="800" height="800" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="800" rx="160" fill="url(#grad_light)" />
+  <path d="M240 200H560V280H330V360H500V440H330V600H240V200Z" fill="#0F172A" />
+  <path d="M500 360L580 440H500V360Z" fill="#0284C7" />
+  <defs>
+    <linearGradient id="grad_light" x1="0" y1="0" x2="800" y2="800" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F1F5F9" />
+      <stop offset="1" stop-color="#E2E8F0" />
+    </linearGradient>
+  </defs>
+</svg>
