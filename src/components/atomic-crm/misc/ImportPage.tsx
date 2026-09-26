@@ -29,8 +29,19 @@ export const ImportPage = () => {
   const [importState, importFile, reset] = useImportFromJson();
 
   return (
-    <div className="max-w-2xl mx-auto mt-8">
-      <Card>
+    <div className="crm-standalone-page max-w-3xl">
+      <div className="crm-standalone-header">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary/80">
+          FINLONEXA tools
+        </p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
+          {translate("crm.import.title")}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Bring structured CRM data into your workspace with a validated JSON file.
+        </p>
+      </div>
+      <Card className="crm-standalone-card">
         <CardHeader>
           <CardTitle>{translate("crm.import.title")}</CardTitle>
         </CardHeader>

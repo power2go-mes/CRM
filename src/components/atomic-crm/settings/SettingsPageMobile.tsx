@@ -139,7 +139,7 @@ export const SettingsPageMobile = () => {
 SettingsPageMobile.path = "/settings";
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1 mb-1.5">
+  <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary/80">
     {children}
   </p>
 );
@@ -227,7 +227,7 @@ const ProfileSection = () => {
       <SectionLabel>
         {translate("crm.profile.title", { _: "Profile" })}
       </SectionLabel>
-      <ItemGroup className="rounded-lg border overflow-hidden">
+      <ItemGroup className="overflow-hidden rounded-[1.25rem] border border-border/80 bg-card/90 shadow-[0_12px_28px_rgba(15,23,42,0.04)]">
         <Form record={data}>
           <Item size="sm">
             <ItemContent>
@@ -438,7 +438,7 @@ const PreferencesSection = () => {
       <SectionLabel>
         {translate("crm.settings.preferences", { _: "Preferences" })}
       </SectionLabel>
-      <ItemGroup className="rounded-lg border overflow-hidden">
+      <ItemGroup className="overflow-hidden rounded-[1.25rem] border border-border/80 bg-card/90 shadow-[0_12px_28px_rgba(15,23,42,0.04)]">
         <LanguageRow />
         <ItemSeparator />
         <ThemeRow />
@@ -544,7 +544,7 @@ const InboundEmailSection = () => {
           field: "Cc:",
         })}
       </p>
-      <ItemGroup className="rounded-lg border overflow-hidden">
+      <ItemGroup className="overflow-hidden rounded-[1.25rem] border border-border/80 bg-card/90 shadow-[0_12px_28px_rgba(15,23,42,0.04)]">
         <CopyPasteRow value={import.meta.env.VITE_INBOUND_EMAIL} />
       </ItemGroup>
     </div>
@@ -564,7 +564,7 @@ const McpServerSection = () => {
           _: "Use this URL to connect your AI assistant to your CRM data via the Model Context Protocol (MCP).",
         })}
       </p>
-      <ItemGroup className="rounded-lg border overflow-hidden">
+      <ItemGroup className="overflow-hidden rounded-[1.25rem] border border-border/80 bg-card/90 shadow-[0_12px_28px_rgba(15,23,42,0.04)]">
         <CopyPasteRow
           value={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mcp`}
         />
@@ -579,7 +579,7 @@ const AboutSection = () => {
   return (
     <div>
       <SectionLabel>{translate("crm.settings.about")}</SectionLabel>
-      <ItemGroup className="rounded-lg border overflow-hidden">
+      <ItemGroup className="overflow-hidden rounded-[1.25rem] border border-border/80 bg-card/90 shadow-[0_12px_28px_rgba(15,23,42,0.04)]">
         <Item asChild size="sm" className="cursor-pointer">
           <Link to={ChangelogPage.path}>
             <ItemContent>

@@ -43,7 +43,7 @@ export const MobileNavigation = () => {
   return (
     <nav
       aria-label={translate("crm.navigation.label")}
-      className="fixed bottom-0 left-0 right-0 z-50 bg-secondary h-14"
+      className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t border-border/80 bg-card/90 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-md"
       style={{
         // iOS bug: even though viewport is set correctly, the bottom safe area inset is not accounted for
         // So we manually add some padding to avoid the navigation being too close to the home bar
@@ -54,7 +54,7 @@ export const MobileNavigation = () => {
           "calc(var(--spacing)) * 6" + (isPwa && isWebiOS ? " + 15px" : ""),
       }}
     >
-      <div className="flex w-full justify-center px-1">
+      <div className="flex h-full w-full items-center justify-center gap-1 px-1">
         <>
           <NavigationButton
             href="/"
@@ -104,13 +104,15 @@ const NavigationButton = ({
     asChild
     variant="ghost"
     className={cn(
-      "min-w-0 flex-1 flex-col gap-1 h-auto py-2 px-0 rounded-md",
-      isActive ? null : "text-muted-foreground",
+              "min-w-0 flex-1 flex-col gap-1 h-auto rounded-xl py-2 px-0 transition-all duration-200",
+              isActive
+                ? "bg-primary/8 text-primary shadow-[0_8px_18px_rgba(37,99,235,0.12)]"
+                : "text-muted-foreground hover:bg-accent/70",
     )}
   >
     <Link to={href}>
       <Icon className="size-6" />
-      <span className="max-w-full truncate text-[0.6rem] font-medium">{label}</span>
+              <span className="max-w-full truncate text-[0.6rem] font-semibold">{label}</span>
     </Link>
   </Button>
 );
@@ -143,7 +145,7 @@ const CreateButton = () => {
           <Button
             variant="default"
             size="icon"
-            className="h-16 w-16 rounded-full -mt-3"
+            className="h-16 w-16 rounded-full -mt-3 border border-primary/25 bg-primary text-primary-foreground shadow-[0_18px_30px_rgba(37,99,235,0.28)]"
             aria-label={translate("ra.action.create")}
           >
             <Plus className="size-10" />

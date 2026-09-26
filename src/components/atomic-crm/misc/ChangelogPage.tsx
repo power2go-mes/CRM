@@ -30,8 +30,16 @@ export const ChangelogPage = () => {
   }
 
   return (
-    <div className="max-w-3xl mx-auto my-8">
-      <Card>
+    <div className="crm-standalone-page max-w-4xl">
+      <div className="crm-standalone-header">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary/80">
+          FINLONEXA updates
+        </p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
+          {translate("crm.changelog.title")}
+        </h1>
+      </div>
+      <Card className="crm-standalone-card">
         <CardHeader>
           <CardTitle>{translate("crm.changelog.title")}</CardTitle>
         </CardHeader>

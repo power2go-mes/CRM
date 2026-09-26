@@ -258,6 +258,18 @@ input[type="time"] {
     @apply h-11 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground shadow-[inset_0_1px_1px_rgba(15,23,42,0.02)] transition-colors placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10;
   }
 
+  .crm-standalone-page {
+    @apply mx-auto w-full max-w-5xl py-2 md:py-6;
+  }
+
+  .crm-standalone-card {
+    @apply rounded-[1.5rem] border border-border/80 bg-card/90 shadow-[0_18px_45px_rgba(15,23,42,0.05)] backdrop-blur-sm;
+  }
+
+  .crm-standalone-header {
+    @apply mb-5 rounded-[1.5rem] border border-border/80 bg-card/80 px-5 py-5 shadow-[0_12px_30px_rgba(15,23,42,0.04)] md:px-7;
+  }
+
   .crm-select {
     @apply h-11 w-full rounded-xl border border-border bg-background px-3 pr-9 text-sm text-foreground shadow-[inset_0_1px_1px_rgba(15,23,42,0.02)] transition-colors placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10;
   }

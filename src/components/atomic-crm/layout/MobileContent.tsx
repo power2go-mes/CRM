@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 
 export const MobileContent = ({ children }: { children: ReactNode }) => (
   <main
-    className="max-w-screen-xl mx-auto pt-18 px-4 pb-20 min-h-screen overflow-y-auto"
+    className="mx-auto min-h-screen max-w-screen-xl overflow-y-auto px-4 pb-24 pt-20"
     id="main-content"
   >
     {children}

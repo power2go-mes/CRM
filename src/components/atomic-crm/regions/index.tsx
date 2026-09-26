@@ -44,16 +44,18 @@ const RegionList = () => (
 
 const RegionCreate = () => (
   <CreateBase redirect="list">
-    <div className="max-w-xl mx-auto mt-8"><Form defaultValues={{ is_active: true }}>
-      <Card><CardContent><RegionInputs /><div className="flex justify-end gap-2 pt-4"><CancelButton /><SaveButton label="Create Region" /></div></CardContent></Card>
+    <div className="crm-standalone-page max-w-2xl"><Form defaultValues={{ is_active: true }}>
+      <div className="crm-standalone-header"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary/80">Management</p><h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">Create region</h1></div>
+      <Card className="crm-standalone-card"><CardContent><RegionInputs /><div className="flex justify-end gap-2 pt-4"><CancelButton /><SaveButton label="Create Region" /></div></CardContent></Card>
     </Form></div>
   </CreateBase>
 );
 
 const RegionEdit = () => (
   <EditBase redirect="list">
-    <div className="max-w-xl mx-auto mt-8"><Form>
-      <Card><CardContent><RegionInputs /><FormToolbar /></CardContent></Card>
+    <div className="crm-standalone-page max-w-2xl"><Form>
+      <div className="crm-standalone-header"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary/80">Management</p><h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">Edit region</h1></div>
+      <Card className="crm-standalone-card"><CardContent><RegionInputs /><FormToolbar /></CardContent></Card>
     </Form></div>
   </EditBase>
 );

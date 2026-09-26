@@ -81,20 +81,26 @@ export const LoginPage = (props: { redirectTo?: string }) => {
   };
 
   return (
-    <div className="min-h-screen flex">
-      <div className="relative grid w-full lg:grid-cols-2">
-        <div className="relative hidden h-full flex-col bg-muted p-10 text-white dark:border-r lg:flex">
-          <div className="absolute inset-0 bg-zinc-900" />
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.14),_transparent_30%),linear-gradient(180deg,_#f8fbff_0%,_#f1f5f9_100%)] p-0 lg:p-6">
+      <div className="relative grid min-h-screen w-full overflow-hidden bg-card/85 shadow-[0_30px_80px_rgba(15,23,42,0.12)] lg:min-h-[calc(100vh-3rem)] lg:grid-cols-2 lg:rounded-[2rem] lg:border lg:border-border/80">
+        <div className="relative hidden h-full flex-col overflow-hidden bg-[#071a33] p-10 text-white dark:border-r lg:flex">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(37,99,235,0.5),_transparent_42%),linear-gradient(145deg,_#071a33_0%,_#0b2345_65%,_#12366a_100%)]" />
           <div className="relative z-20 flex flex-col gap-1">
-            <div className="flex items-center text-lg font-medium">
-              <img className="h-6 mr-2" src={darkModeLogo} alt={title} />
+            <div className="flex items-center text-lg font-semibold">
+              <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
+                <img className="h-6 w-6 object-contain" src={darkModeLogo} alt={title} />
+              </div>
               {title}
             </div>
-            <p className="text-xs text-zinc-400 font-normal">by ELVAVEO</p>
+            <p className="mt-1 text-xs font-medium uppercase tracking-[0.16em] text-blue-200/70">FINLONEXA workspace</p>
+          </div>
+          <div className="relative z-20 mt-auto max-w-sm">
+            <p className="text-4xl font-semibold leading-tight tracking-[-0.04em]">Clarity for every customer conversation.</p>
+            <p className="mt-4 text-sm leading-6 text-blue-100/70">Keep teams aligned, follow-ups visible, and revenue moving from one calm workspace.</p>
           </div>
         </div>
-        <div className="flex flex-col justify-center w-full p-4 lg:p-8">
-          <div className="w-full space-y-6 lg:mx-auto lg:w-[350px]">
+        <div className="flex w-full flex-col justify-center p-5 sm:p-8 lg:p-12">
+          <div className="mx-auto w-full max-w-sm space-y-6">
             <div className="text-center">
               <h1 className="text-2xl font-semibold tracking-tight">
                 {translate("ra.auth.sign_in")}

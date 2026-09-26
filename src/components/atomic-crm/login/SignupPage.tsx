@@ -96,20 +96,27 @@ export const SignupPage = () => {
   };
 
   return (
-    <div className="h-screen p-8">
-      <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.14),_transparent_30%),linear-gradient(180deg,_#f8fbff_0%,_#f1f5f9_100%)] p-5 sm:p-8">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
+          <span className="text-sm font-bold">F</span>
+        </div>
         <div className="flex flex-col">
-          <h1 className="text-xl font-semibold">CRM</h1>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary/80">FINLONEXA</p>
+          <h1 className="text-xl font-semibold tracking-[-0.03em]">CRM</h1>
         </div>
       </div>
-      <div className="h-full">
-        <div className="max-w-sm mx-auto h-full flex flex-col justify-center gap-4">
-          <h1 className="text-2xl font-bold mb-4">
+      <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-xl items-center justify-center">
+        <div className="w-full space-y-5 rounded-[2rem] border border-border/80 bg-card/90 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.1)] sm:p-9">
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary/80">Workspace setup</p>
+            <h1 className="mt-2 text-2xl font-bold tracking-[-0.03em]">
             {translate("crm.auth.welcome_title", {
               _: "Welcome to CRM",
             })}
-          </h1>
-          <p className="text-base mb-4">
+            </h1>
+          </div>
+          <p className="mb-4 text-base text-muted-foreground">
             {translate("crm.auth.signup.create_first_user", {
               _: "Create the first user account to complete the setup.",
             })}

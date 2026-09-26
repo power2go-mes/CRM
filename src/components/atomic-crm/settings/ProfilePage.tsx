@@ -89,9 +89,10 @@ export const ProfilePage = () => {
   };
 
   return (
-    <div className="max-w-lg mx-auto mt-8">
-      <div className="mb-4">
-        <h1 className="text-2xl font-semibold">My Profile</h1>
+    <div className="crm-standalone-page max-w-3xl">
+      <div className="crm-standalone-header">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary/80">Account</p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">My Profile</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Update your safe personal details. Role, Region, reporting manager, and access status are managed by your administrator.
         </p>
@@ -184,7 +185,7 @@ const ProfileForm = ({
 
   return (
     <div className="space-y-4">
-      <Card>
+      <Card className="crm-standalone-card">
         <CardContent>
           <div className="mb-4 flex flex-row justify-between">
             <h2 className="text-xl font-semibold text-muted-foreground">

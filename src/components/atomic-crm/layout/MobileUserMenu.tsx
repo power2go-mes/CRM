@@ -37,12 +37,14 @@ export const MobileUserMenu = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Open menu">
+        <Button variant="ghost" size="icon" className="rounded-xl" aria-label="Open menu">
           <Menu />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end">
-        <DropdownMenuLabel>{identity?.fullName}</DropdownMenuLabel>
+      <DropdownMenuContent className="w-60 rounded-2xl border-border/80 p-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.14)]" align="end">
+        <DropdownMenuLabel className="px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          {identity?.fullName}
+        </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <MobileMenuLink to="/profile" icon={<User />}>
           {translate("crm.profile.title")}
@@ -86,7 +88,7 @@ const MobileMenuLink = ({
   children: React.ReactNode;
 }) => (
   <DropdownMenuItem asChild>
-    <Link to={to} className="flex items-center gap-2">
+    <Link to={to} className="flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm">
       {icon}
       {children}
     </Link>

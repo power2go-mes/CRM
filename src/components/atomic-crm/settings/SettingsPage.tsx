@@ -245,11 +245,14 @@ const SettingsFormFields = () => {
   );
 
   return (
-    <div className="flex gap-8 mt-4 pb-20">
+    <div className="crm-standalone-page flex gap-8 pb-24">
       {/* Left navigation */}
       <nav className="hidden md:block w-48 shrink-0">
-        <div className="sticky top-4 space-y-1">
-          <h1 className="text-2xl font-semibold px-3 mb-2">
+        <div className="sticky top-4 space-y-1 rounded-[1.5rem] border border-border/80 bg-card/75 p-3 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
+          <p className="px-3 pt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary/80">
+            FINLONEXA admin
+          </p>
+          <h1 className="px-3 pb-2 pt-1 text-2xl font-semibold tracking-[-0.03em]">
             {translate("crm.settings.title")}
           </h1>
           {SECTIONS.map((section) => (
@@ -261,7 +264,7 @@ const SettingsFormFields = () => {
                   .getElementById(section.id)
                   ?.scrollIntoView({ behavior: "smooth" });
               }}
-              className="block w-full text-left px-3 py-1 text-sm rounded-md hover:text-foreground hover:bg-muted transition-colors"
+              className="block w-full rounded-xl px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
               {translate(section.label, { smart_count: 2 })}
             </button>
@@ -272,7 +275,7 @@ const SettingsFormFields = () => {
       {/* Main content */}
       <div className="flex-1 min-w-0 max-w-2xl space-y-6">
         {/* Branding */}
-        <Card id="branding">
+        <Card id="branding" className="crm-standalone-card">
           <CardContent className="space-y-4">
             <h2 className="text-xl font-semibold text-muted-foreground">
               {translate("crm.settings.sections.branding")}
@@ -308,7 +311,7 @@ const SettingsFormFields = () => {
         </Card>
 
         {/* Companies */}
-        <Card id="companies">
+        <Card id="companies" className="crm-standalone-card">
           <CardContent className="space-y-4">
             <h2 className="text-xl font-semibold text-muted-foreground">
               {translate("resources.companies.name", {
@@ -331,7 +334,7 @@ const SettingsFormFields = () => {
         </Card>
 
         {/* Deals */}
-        <Card id="deals">
+        <Card id="deals" className="crm-standalone-card">
           <CardContent className="space-y-4">
             <h2 className="text-xl font-semibold text-muted-foreground">
               {translate("resources.deals.name", {
@@ -425,7 +428,7 @@ const SettingsFormFields = () => {
         </Card>
 
         {/* Notes */}
-        <Card id="notes">
+        <Card id="notes" className="crm-standalone-card">
           <CardContent className="space-y-4">
             <h2 className="text-xl font-semibold text-muted-foreground">
               {translate("resources.notes.name", {
@@ -445,7 +448,7 @@ const SettingsFormFields = () => {
         </Card>
 
         {/* Tasks */}
-        <Card id="tasks">
+        <Card id="tasks" className="crm-standalone-card">
           <CardContent className="space-y-4">
             <h2 className="text-xl font-semibold text-muted-foreground">
               {translate("resources.tasks.name", {
@@ -465,7 +468,7 @@ const SettingsFormFields = () => {
       </div>
 
       {/* Sticky save button */}
-      <div className="fixed bottom-0 left-0 right-0 border-t bg-background p-4">
+      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-border/80 bg-card/90 p-3 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur-md md:p-4">
         <div className="max-w-screen-xl mx-auto flex gap-8 px-4">
           <div className="hidden md:block w-48 shrink-0" />
           <div className="flex-1 min-w-0 max-w-2xl flex justify-between">
