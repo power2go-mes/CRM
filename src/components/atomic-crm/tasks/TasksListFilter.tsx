@@ -33,8 +33,8 @@ export const TaskListFilter = ({
   if (!safeTasks.length || !total) return null;
 
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-2">
+    <div className="rounded-[22px] border border-slate-200 bg-white/80 p-4 shadow-[0_12px_35px_rgba(15,23,42,0.04)]">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
         {title}
       </p>
       <ResourceContextProvider value="tasks">
@@ -43,14 +43,14 @@ export const TaskListFilter = ({
         </ListContextProvider>
       </ResourceContextProvider>
       {total > listContext.perPage && (
-        <div className="flex justify-center">
+        <div className="mt-3 flex justify-center">
           <a
             href="#"
             onClick={(e) => {
               listContext.setPerPage(listContext.perPage + 10);
               e.preventDefault();
             }}
-            className="text-sm underline hover:no-underline"
+            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
           >
             {translate("crm.common.load_more")}
           </a>

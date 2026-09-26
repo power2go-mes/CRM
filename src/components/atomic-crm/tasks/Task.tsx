@@ -90,9 +90,9 @@ export const Task = ({
 
   return (
     <>
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/70 px-3 py-3 transition-colors hover:border-slate-300 hover:bg-white/90">
         <div
-          className="flex items-start gap-2 flex-1"
+          className="flex flex-1 items-start gap-3"
           onClick={isMobile ? handleCheck() : undefined}
         >
           <Checkbox
@@ -100,28 +100,23 @@ export const Task = ({
             checked={!!task.done_date}
             onCheckedChange={handleCheck()}
             disabled={isUpdatePending}
-            className="mt-1"
+            className="mt-1.5 h-4 w-4 rounded-[6px] border-slate-300 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
           />
-          <div className={`flex-grow ${task.done_date ? "line-through" : ""}`}>
-            <div className="text-sm">
+          <div className={`min-w-0 flex-1 ${task.done_date ? "line-through text-slate-400" : ""}`}>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-slate-800">
               {task.type && task.type !== "none" && (
-                <>
-                  <span className="font-semibold text-sm">
-                    {(() => {
-                      const matchedTaskType = taskTypes.find(
-                        (taskType) => taskType.value === task.type,
-                      );
-                      return matchedTaskType
-                        ? matchedTaskType.label
-                        : task.type;
-                    })()}
-                  </span>
-                  &nbsp;
-                </>
+                <span className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-blue-700">
+                  {(() => {
+                    const matchedTaskType = taskTypes.find(
+                      (taskType) => taskType.value === task.type,
+                    );
+                    return matchedTaskType ? matchedTaskType.label : task.type;
+                  })()}
+                </span>
               )}
-              {task.text}
+              <span className="font-medium">{task.text}</span>
             </div>
-            <div className="text-sm text-muted-foreground">
+            <div className="mt-1 text-sm text-slate-500">
               {translate("resources.tasks.fields.due_short")}
               &nbsp;
               <DateField source="due_date" record={task} showDate showTime />
@@ -131,7 +126,7 @@ export const Task = ({
                   reference="contacts"
                   record={task}
                   link="show"
-                  className="inline text-sm text-muted-foreground"
+                  className="inline text-sm text-slate-500"
                   render={({ referenceRecord }) => {
                     if (!referenceRecord) return null;
                     return (
@@ -154,13 +149,13 @@ export const Task = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-5 pr-0! size-8 cursor-pointer"
+              className="h-8 w-8 cursor-pointer rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700"
               aria-label={translate("resources.tasks.actions.title")}
             >
-              <MoreVertical className="size-5 md:size-4" />
+              <MoreVertical className="size-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="w-52">
             <DropdownMenuItem
               className="cursor-pointer h-12 md:h-8 px-4 md:px-2 text-base md:text-sm"
               onClick={() => {
