@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import { Children, createElement, isValidElement, useCallback } from "react";
 import type {
   DataTableBaseProps,
@@ -262,11 +262,28 @@ const DataTableRow = ({
     });
   }, [record, resource, rowClick, navigate, getPathForRecord]);
 
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLTableRowElement>) => {
+      if (rowClick === false || event.target !== event.currentTarget) return;
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      void handleClick();
+    },
+    [handleClick, rowClick],
+  );
+
   return (
     <TableRow
       key={record.id}
       onClick={handleClick}
-      className={cn(rowClick !== false && "cursor-pointer", className)}
+      onKeyDown={handleKeyDown}
+      tabIndex={rowClick !== false ? 0 : undefined}
+      role={rowClick !== false ? "link" : undefined}
+      className={cn(
+        rowClick !== false &&
+          "cursor-pointer outline-none transition-colors focus-visible:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+        className,
+      )}
     >
       {hasBulkActions ? (
         <TableCell className="flex w-8" onClick={handleToggle}>

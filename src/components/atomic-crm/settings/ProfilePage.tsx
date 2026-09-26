@@ -90,6 +90,12 @@ export const ProfilePage = () => {
 
   return (
     <div className="max-w-lg mx-auto mt-8">
+      <div className="mb-4">
+        <h1 className="text-2xl font-semibold">My Profile</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Update your safe personal details. Role, Region, reporting manager, and access status are managed by your administrator.
+        </p>
+      </div>
       <Form onSubmit={handleOnSubmit} record={data}>
         <ProfileForm isEditMode={isEditMode} setEditMode={setEditMode} />
       </Form>

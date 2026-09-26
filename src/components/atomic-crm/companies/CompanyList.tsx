@@ -16,7 +16,8 @@ export const CompanyList = () => {
   if (!identity) return null;
   return (
     <List
-      title={false}
+      title="Accounts / Companies"
+      description="Manage customer Accounts and Companies. Select a Company to view its Contacts, opportunities, and sales context."
       perPage={25}
       sort={{ field: "name", order: "ASC" }}
       actions={<CompanyListActions />}

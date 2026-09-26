@@ -1,5 +1,6 @@
 import { commands } from "vitest/browser";
 
+import { getDealsByStage } from "./stages";
 import { formatISODateString } from "./dealUtils";
 
 describe("formatISODateString", () => {
@@ -50,5 +51,9 @@ describe("formatISODateString", () => {
     expect(() => formatISODateString(invalidDate)).toThrow(
       "Invalid date format. Expected YYYY-MM-DD.",
     );
+  });
+
+  it("returns an empty stage map when no deal data is available", () => {
+    expect(getDealsByStage(undefined as never, [])).toEqual({});
   });
 });

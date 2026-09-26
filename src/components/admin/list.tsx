@@ -106,6 +106,7 @@ export const ListView = <RecordType extends RaRecord = RaRecord>(
     filters,
     pagination = defaultPagination,
     title,
+    description,
     children,
     actions,
   } = props;
@@ -144,9 +145,18 @@ export const ListView = <RecordType extends RaRecord = RaRecord>(
 
       <FilterContext.Provider value={filters}>
         <div className="flex justify-between items-start flex-wrap gap-2 my-2">
-          <h2 className="text-2xl font-bold tracking-tight mb-2">
-            {finalTitle}
-          </h2>
+          <div>
+            {title !== false ? (
+              <h2 className="text-2xl font-bold tracking-tight mb-1">
+                {finalTitle}
+              </h2>
+            ) : null}
+            {description ? (
+              <p className="max-w-3xl text-sm text-muted-foreground">
+                {description}
+              </p>
+            ) : null}
+          </div>
           {actions ?? (
             <div className="flex items-center gap-2">
               {filters && filters.length > 0 ? <FilterButton /> : null}
@@ -210,5 +220,7 @@ export interface ListViewProps<RecordType extends RaRecord = RaRecord> {
   filters?: ReactNode[];
   pagination?: ReactNode;
   title?: ReactNode | string | false;
+  /** Brief, user-facing explanation of the page's purpose and scope. */
+  description?: ReactNode;
   className?: string;
 }

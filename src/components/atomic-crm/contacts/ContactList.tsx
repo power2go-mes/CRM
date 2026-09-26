@@ -40,7 +40,8 @@ export const ContactList = () => {
 
   return (
     <List
-      title={false}
+      title="Contacts"
+      description="View and manage customer Contacts. Select a Contact to open their details, tasks, notes, and opportunities."
       actions={<ContactListActions />}
       perPage={25}
       sort={{ field: "last_seen", order: "DESC" }}

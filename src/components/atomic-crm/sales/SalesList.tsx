@@ -47,6 +47,7 @@ export function SalesList() {
   return (
     <List
       title="Users & Roles"
+      description="Create and manage FINLONEXA users, roles, reporting managers, Regions, and access status. Select a user to open their profile."
       filters={filters}
       actions={<SalesListActions />}
       sort={{ field: "first_name", order: "ASC" }}

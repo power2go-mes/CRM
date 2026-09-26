@@ -25,6 +25,7 @@ const RegionInputs = () => (
 const RegionList = () => (
   <List
     title="Regions"
+    description="Manage sales Regions and their assigned teams. Select a Region to view its team structure and monitoring details."
     actions={<TopToolbar><CreateButton label="Add Region" /></TopToolbar>}
     sort={{ field: "name", order: "ASC" }}
   >

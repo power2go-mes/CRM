@@ -72,7 +72,8 @@ const DealList = () => {
     <List
       perPage={100}
       filter={{ "archived_at@is": null }}
-      title={false}
+      title="Opportunities"
+      description="Manage active sales opportunities and deal progress. Select a Deal to review the Company, value, stage, and next action."
       sort={{ field: "index", order: "DESC" }}
       filters={dealFilters}
       actions={<DealActions />}

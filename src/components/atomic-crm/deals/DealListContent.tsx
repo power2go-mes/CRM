@@ -11,29 +11,30 @@ import { getDealsByStage } from "./stages";
 
 export const DealListContent = () => {
   const { dealStages } = useConfigurationContext();
+  const safeDealStages = Array.isArray(dealStages) ? dealStages : [];
   const { data: unorderedDeals, isPending, refetch } = useListContext<Deal>();
   const dataProvider = useDataProvider();
 
   const [dealsByStage, setDealsByStage] = useState<DealsByStage>(
-    getDealsByStage([], dealStages),
+    getDealsByStage([], safeDealStages),
   );
 
   useEffect(() => {
-    if (unorderedDeals) {
-      const newDealsByStage = getDealsByStage(unorderedDeals, dealStages);
+    if (Array.isArray(unorderedDeals)) {
+      const newDealsByStage = getDealsByStage(unorderedDeals, safeDealStages);
       if (!isEqual(newDealsByStage, dealsByStage)) {
         setDealsByStage(newDealsByStage);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [unorderedDeals]);
+  }, [unorderedDeals, safeDealStages]);
 
-  if (isPending) return null;
+  if (isPending || !safeDealStages.length) return null;
 
   const onDragEnd: OnDragEndResponder = (result) => {
     const { destination, source } = result;
 
-    if (!destination) {
+    if (!destination || !source) {
       return;
     }
 
@@ -46,10 +47,19 @@ export const DealListContent = () => {
 
     const sourceStage = source.droppableId;
     const destinationStage = destination.droppableId;
-    const sourceDeal = dealsByStage[sourceStage][source.index]!;
-    const destinationDeal = dealsByStage[destinationStage][
-      destination.index
-    ] ?? {
+    const sourceColumn = dealsByStage[sourceStage];
+    const destinationColumn = dealsByStage[destinationStage];
+
+    if (!Array.isArray(sourceColumn) || !Array.isArray(destinationColumn)) {
+      return;
+    }
+
+    const sourceDeal = sourceColumn[source.index];
+    if (!sourceDeal) {
+      return;
+    }
+
+    const destinationDeal = destinationColumn[destination.index] ?? {
       stage: destinationStage,
       index: undefined, // undefined if dropped after the last item
     };
@@ -73,7 +83,7 @@ export const DealListContent = () => {
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <div className="flex gap-4">
-        {dealStages.map((stage) => (
+        {safeDealStages.map((stage) => (
           <DealColumn
             stage={stage.value}
             deals={dealsByStage[stage.value]}
@@ -96,23 +106,31 @@ const updateDealStageLocal = (
 ) => {
   if (source.stage === destination.stage) {
     // moving deal inside the same column
-    const column = dealsByStage[source.stage];
+    const column = Array.isArray(dealsByStage[source.stage])
+      ? [...dealsByStage[source.stage]]
+      : [];
+    const destinationIndex =
+      typeof destination.index === "number" ? destination.index : column.length;
     column.splice(source.index, 1);
-    column.splice(destination.index ?? column.length + 1, 0, sourceDeal);
+    column.splice(destinationIndex, 0, sourceDeal);
     return {
       ...dealsByStage,
       [destination.stage]: column,
     };
   } else {
     // moving deal across columns
-    const sourceColumn = dealsByStage[source.stage];
-    const destinationColumn = dealsByStage[destination.stage];
+    const sourceColumn = Array.isArray(dealsByStage[source.stage])
+      ? [...dealsByStage[source.stage]]
+      : [];
+    const destinationColumn = Array.isArray(dealsByStage[destination.stage])
+      ? [...dealsByStage[destination.stage]]
+      : [];
+    const destinationIndex =
+      typeof destination.index === "number"
+        ? destination.index
+        : destinationColumn.length;
     sourceColumn.splice(source.index, 1);
-    destinationColumn.splice(
-      destination.index ?? destinationColumn.length + 1,
-      0,
-      sourceDeal,
-    );
+    destinationColumn.splice(destinationIndex, 0, sourceDeal);
     return {
       ...dealsByStage,
       [source.stage]: sourceColumn,

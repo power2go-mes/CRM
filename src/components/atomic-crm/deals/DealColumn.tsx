@@ -10,9 +10,10 @@ export const DealColumn = ({
   deals,
 }: {
   stage: string;
-  deals: Deal[];
+  deals?: Deal[];
 }) => {
-  const totalAmount = deals.reduce((sum, deal) => sum + deal.amount, 0);
+  const safeDeals = Array.isArray(deals) ? deals : [];
+  const totalAmount = safeDeals.reduce((sum, deal) => sum + (deal.amount ?? 0), 0);
   const { dealStages, currency } = useConfigurationContext();
   return (
     <div className="flex-1 pb-8">
@@ -39,7 +40,7 @@ export const DealColumn = ({
               snapshot.isDraggingOver ? "bg-muted" : ""
             }`}
           >
-            {deals.map((deal, index) => (
+            {safeDeals.map((deal, index) => (
               <DealCard key={deal.id} deal={deal} index={index} />
             ))}
             {droppableProvided.placeholder}

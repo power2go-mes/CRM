@@ -21,15 +21,16 @@ export const TaskListFilter = ({
   isMobile,
 }: TaskListProps) => {
   const translate = useTranslate();
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
   const listContext = useList({
-    data: tasks,
+    data: safeTasks,
     resource: "tasks",
     perPage: isMobile ? 10 : 5,
   });
 
   const { total } = listContext;
 
-  if (!tasks?.length || !total) return null;
+  if (!safeTasks.length || !total) return null;
 
   return (
     <div className="flex flex-col gap-2">

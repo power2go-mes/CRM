@@ -15,10 +15,14 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    visualizer({
-      open: process.env.NODE_ENV !== "CI",
-      filename: "./dist/stats.html",
-    }),
+    // Bundle analysis is useful on demand, but generating and opening it on
+    // every build slows local development and can block headless builds.
+    process.env.ANALYZE_BUNDLE === "true"
+      ? visualizer({
+          open: false,
+          filename: "./dist/stats.html",
+        })
+      : undefined,
     createHtmlPlugin({
       minify: true,
       inject: {

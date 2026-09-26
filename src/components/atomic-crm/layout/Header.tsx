@@ -31,83 +31,66 @@ const Header = () => {
   }
 
   return (
-    <>
-      <nav className="grow">
-        <header className="bg-secondary">
-          <div className="px-4">
-            <div className="flex justify-between items-center flex-1">
-              <Link
-                to="/"
-                className="flex items-center gap-2 text-secondary-foreground no-underline"
-              >
-                <img
-                  className="[.light_&]:hidden h-6"
-                  src={darkModeLogo}
-                  alt={title}
-                />
-                <img
-                  className="[.dark_&]:hidden h-6"
-                  src={lightModeLogo}
-                  alt={title}
-                />
-                <h1 className="text-xl font-semibold">{title}</h1>
-              </Link>
-              <div>
-                <nav className="flex">
-                  <NavigationTab
-                    label={translate("ra.page.dashboard")}
-                    to="/"
-                    isActive={currentPath === "/"}
-                  />
-                  <NavigationTab
-                    label={translate("resources.contacts.name", {
-                      smart_count: 2,
-                    })}
-                    to="/contacts"
-                    isActive={currentPath === "/contacts"}
-                  />
-                  <NavigationTab
-                    label={translate("resources.companies.name", {
-                      smart_count: 2,
-                    })}
-                    to="/companies"
-                    isActive={currentPath === "/companies"}
-                  />
-                  <NavigationTab
-                    label={translate("resources.deals.name", {
-                      smart_count: 2,
-                    })}
-                    to="/deals"
-                    isActive={currentPath === "/deals"}
-                  />
-                  <NavigationTab
-                    label="Leads"
-                    to="/leads"
-                    isActive={currentPath === "/leads"}
-                  />
-                </nav>
-              </div>
-              <div className="flex items-center">
-                <ThemeModeToggle />
-                <RefreshButton />
-                <UserMenu>
-                  <ProfileMenu />
-                  <CanAccess resource="users" action="list">
-                    <UsersMenu />
-                  </CanAccess>
-                  <CanAccess resource="configuration" action="edit">
-                    <RegionsMenu />
-                    <SettingsMenu />
-                  </CanAccess>
-                  <ImportFromJsonMenuItem />
-                  <ChangelogMenuItem />
-                </UserMenu>
-              </div>
+    <header className="rounded-[24px] border border-border/80 bg-white/80 px-4 py-3 shadow-[0_18px_45px_rgba(15,23,42,0.05)] backdrop-blur-md">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center justify-between gap-3">
+          <Link to="/" className="flex items-center gap-3 text-secondary-foreground no-underline">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/15">
+              <img className="[.light_&]:hidden h-6 w-6 object-contain" src={darkModeLogo} alt={title} />
+              <img className="[.dark_&]:hidden h-6 w-6 object-contain" src={lightModeLogo} alt={title} />
             </div>
+            <div className="leading-none">
+              <div className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-primary/80">FINLONEXA</div>
+              <h1 className="text-lg font-semibold tracking-[-0.03em] text-foreground">{title}</h1>
+            </div>
+          </Link>
+
+          <div className="flex items-center gap-2 lg:hidden">
+            <ThemeModeToggle />
+            <RefreshButton />
+            <UserMenu>
+              <ProfileMenu />
+              <CanAccess resource="users" action="list">
+                <UsersMenu />
+              </CanAccess>
+              <CanAccess resource="configuration" action="edit">
+                <RegionsMenu />
+                <SettingsMenu />
+              </CanAccess>
+              <ImportFromJsonMenuItem />
+              <ChangelogMenuItem />
+            </UserMenu>
           </div>
-        </header>
-      </nav>
-    </>
+        </div>
+
+        <nav className="hidden flex-1 items-center justify-center lg:flex">
+          <div className="flex items-center gap-2 rounded-full border border-border bg-slate-50/80 p-1.5 shadow-[0_6px_18px_rgba(15,23,42,0.03)]">
+            <NavigationTab label={translate("ra.page.dashboard")} to="/" isActive={currentPath === "/"} />
+            <NavigationTab label={translate("resources.contacts.name", { smart_count: 2 })} to="/contacts" isActive={currentPath === "/contacts"} />
+            <NavigationTab label={translate("resources.companies.name", { smart_count: 2 })} to="/companies" isActive={currentPath === "/companies"} />
+            <NavigationTab label={translate("resources.deals.name", { smart_count: 2 })} to="/deals" isActive={currentPath === "/deals"} />
+            <NavigationTab label="Leads" to="/leads" isActive={currentPath === "/leads"} />
+          </div>
+        </nav>
+
+        <div className="hidden items-center gap-2 lg:flex">
+          <ThemeModeToggle />
+          <RefreshButton />
+          <UserMenu>
+            <ProfileMenu />
+            <CanAccess resource="users" action="list">
+              <UsersMenu />
+            </CanAccess>
+            <CanAccess resource="configuration" action="edit">
+              <RegionsMenu />
+              <SettingsMenu />
+            </CanAccess>
+            <ImportFromJsonMenuItem />
+            <ChangelogMenuItem />
+          </UserMenu>
+        </div>
+      </div>
+    </header>
   );
 };
 
@@ -132,10 +115,10 @@ const NavigationTab = ({
 }) => (
   <Link
     to={to}
-    className={`px-2 py-3 text-sm font-medium transition-colors border-b-2 lg:px-6 ${
+    className={`rounded-full px-3 py-2 text-sm font-medium transition-all duration-200 lg:px-4 ${
       isActive
-        ? "text-secondary-foreground border-secondary-foreground"
-        : "text-secondary-foreground/70 border-transparent hover:text-secondary-foreground/80"
+        ? "bg-primary text-primary-foreground shadow-[0_8px_18px_rgba(79,70,229,0.22)]"
+        : "text-foreground/70 hover:bg-accent hover:text-foreground"
     }`}
   >
     {label}

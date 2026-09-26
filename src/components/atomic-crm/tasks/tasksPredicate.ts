@@ -8,8 +8,8 @@ import { getDay, isAfter } from "date-fns";
 export const isBeforeFriday = () => getDay(new Date()) < 5; // Friday is represented by 5
 
 type Task = {
-  due_date: string;
-  done_date: string | null;
+  due_date?: string | null;
+  done_date?: string | null;
 };
 
 export const isDone = (task: Task) => task.done_date != null;
@@ -20,29 +20,36 @@ export const isRecentlyDone = (task: Task) =>
   task.done_date != null &&
   isAfter(new Date(task.done_date), new Date(Date.now() - 5 * 60 * 1000));
 
-export const isOverdue = (dateString: string) => {
-  return new Date(dateString) < startOfToday();
+export const isOverdue = (dateString?: string | null) => {
+  if (!dateString) return false;
+  const value = new Date(dateString);
+  return !Number.isNaN(value.getTime()) && value < startOfToday();
 };
 
-export const isDueToday = (dateString: string) => {
+export const isDueToday = (dateString?: string | null) => {
+  if (!dateString) return false;
   const dueDate = new Date(dateString);
-  return dueDate >= startOfToday() && dueDate < endOfToday();
+  return !Number.isNaN(dueDate.getTime()) && dueDate >= startOfToday() && dueDate < endOfToday();
 };
 
-export const isDueTomorrow = (dateString: string) => {
+export const isDueTomorrow = (dateString?: string | null) => {
+  if (!dateString) return false;
   const dueDate = new Date(dateString);
-  return dueDate >= endOfToday() && dueDate < endOfTomorrow();
+  return !Number.isNaN(dueDate.getTime()) && dueDate >= endOfToday() && dueDate < endOfTomorrow();
 };
 
-export const isDueThisWeek = (dateString: string) => {
+export const isDueThisWeek = (dateString?: string | null) => {
+  if (!dateString) return false;
   const dueDate = new Date(dateString);
   return (
+    !Number.isNaN(dueDate.getTime()) &&
     dueDate >= endOfTomorrow() &&
     dueDate < endOfWeek(new Date(), { weekStartsOn: 0 })
   );
 };
 
-export const isDueLater = (dateString: string) => {
+export const isDueLater = (dateString?: string | null) => {
+  if (!dateString) return false;
   const dueDate = new Date(dateString);
-  return dueDate >= endOfWeek(new Date(), { weekStartsOn: 0 });
+  return !Number.isNaN(dueDate.getTime()) && dueDate >= endOfWeek(new Date(), { weekStartsOn: 0 });
 };

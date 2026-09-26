@@ -1,8 +1,9 @@
 import React from "react";
 import { render } from "vitest-browser-react";
-import { CoreAdminContext } from "ra-core";
+import { CoreAdminContext, ListContextProvider } from "ra-core";
 import fakeDataProvider from "ra-data-fakerest";
 
+import { TasksIterator } from "./TasksIterator";
 import { TaskListFilter } from "./TasksListFilter";
 
 const today = new Date();
@@ -98,5 +99,23 @@ describe("TaskListFilter", () => {
 
     expect(container.textContent?.match(/Task \d+/g) ?? []).toHaveLength(8);
     expect(container.textContent).not.toContain("Load more");
+  });
+
+  it("does not crash when the list context has no data yet", async () => {
+    const { container } = await render(
+      <ListContextProvider
+        value={{
+          data: undefined,
+          isPending: false,
+          error: null,
+          total: undefined,
+        } as any}
+      >
+        <TasksIterator />
+      </ListContextProvider>,
+      { wrapper: Wrapper },
+    );
+
+    expect(container.firstChild).toBeNull();
   });
 });
