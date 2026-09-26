@@ -1,4 +1,5 @@
 import { CRM } from "@/components/atomic-crm/root/CRM";
+import { getMissingSupabaseEnvironmentVariables } from "@/components/atomic-crm/providers/supabase/supabase";
 
 /**
  * Application entry point
@@ -31,6 +32,31 @@ import { CRM } from "@/components/atomic-crm/root/CRM";
  *    />
  * );
  */
-const App = () => <CRM />;
+const App = () => {
+  const missingEnvironmentVariables = getMissingSupabaseEnvironmentVariables();
+
+  if (missingEnvironmentVariables.length > 0) {
+    return (
+      <main
+        className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-4 px-6"
+        role="alert"
+      >
+        <h1 className="text-2xl font-semibold">
+          FINLONEXA CRM configuration required
+        </h1>
+        <p>Set these environment variables in the deployment settings:</p>
+        <ul className="list-disc pl-6">
+          {missingEnvironmentVariables.map((variable) => (
+            <li key={variable}>
+              <code>{variable}</code>
+            </li>
+          ))}
+        </ul>
+      </main>
+    );
+  }
+
+  return <CRM />;
+};
 
 export default App;

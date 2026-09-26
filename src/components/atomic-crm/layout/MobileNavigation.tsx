@@ -54,7 +54,7 @@ export const MobileNavigation = () => {
           "calc(var(--spacing)) * 6" + (isPwa && isWebiOS ? " + 15px" : ""),
       }}
     >
-      <div className="flex justify-center">
+      <div className="flex w-full justify-center px-1">
         <>
           <NavigationButton
             href="/"
@@ -105,13 +105,13 @@ const NavigationButton = ({
     asChild
     variant="ghost"
     className={cn(
-      "flex-col gap-1 h-auto py-2 px-1 rounded-md w-14",
+      "min-w-0 flex-1 flex-col gap-1 h-auto py-2 px-0 rounded-md",
       isActive ? null : "text-muted-foreground",
     )}
   >
     <Link to={href}>
       <Icon className="size-6" />
-      <span className="text-[0.6rem] font-medium">{label}</span>
+      <span className="max-w-full truncate text-[0.6rem] font-medium">{label}</span>
     </Link>
   </Button>
 );

@@ -45,7 +45,7 @@ dist/
 # Shadcn Registry
 public/r/
 
-!supabase/functions/.env
+/supabase/signing_keys.json
 .claude/settings.local.json
 
 # Harness scratch (promotion lock, kept on purpose; worktrees cleaned at SessionEnd)

@@ -209,7 +209,7 @@ Produce:
 ## What every data-shaped ticket must produce
 
 Every data change always produces both:
-- TypeScript types + fake-data generators (FakeRest demo).
+- TypeScript types + test-only fake-data fixtures when existing tests require them.
 - Schema-shaped changes (new entity, new column, dropped table) still produce only TypeScript types + fake-data here; the SQL migration is derived later at deploy time, not by the planner or developer.
 
 Default to one combined ticket (types + fake data) for field additions on existing entities; split into types + UI for new entities.

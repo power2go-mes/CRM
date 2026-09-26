@@ -8,10 +8,13 @@ const requiredEnv = {
 
 let supabaseClient: SupabaseClient | null = null;
 
-export const getSupabaseClient = () => {
-  const missing = Object.entries(requiredEnv)
+export const getMissingSupabaseEnvironmentVariables = () =>
+  Object.entries(requiredEnv)
     .filter(([, value]) => !value)
     .map(([key]) => key);
+
+export const getSupabaseClient = () => {
+  const missing = getMissingSupabaseEnvironmentVariables();
 
   if (missing.length > 0) {
     const message = `Missing required Vite Supabase environment variables: ${missing.join(", ")}. Add them to the Vercel project before deployment.`;

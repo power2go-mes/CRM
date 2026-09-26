@@ -1,14 +1,9 @@
-import {
-  ScanFace,
-  BookOpenText,
-  ChevronsLeftRight,
-  GitBranch,
-} from "lucide-react";
+import { ScanFace, BookOpenText, GitBranch } from "lucide-react";
 
 /**
  * Splash screen displayed when no resources are configured yet.
  *
- * Provides helpful links to documentation, demo, and GitHub repository.
+ * Provides helpful links to documentation and the GitHub repository.
  * Automatically shown when the admin app has no Resource children defined.
  *
  * @see {@link https://marmelab.com/shadcn-admin-kit/docs/ready/ Ready documentation}
@@ -36,12 +31,6 @@ export const Ready = () => (
         <a href="https://marmelab.com/shadcn-admin-kit/docs">
           <BookOpenText className="inline mr-4 w-10 h-10" />
           Documentation
-        </a>
-      </div>
-      <div className="text-xl">
-        <a href="http://marmelab.com/shadcn-admin-kit/demo">
-          <ChevronsLeftRight className="inline mr-4 w-10 h-10" />
-          Demo
         </a>
       </div>
       <div className="text-xl">

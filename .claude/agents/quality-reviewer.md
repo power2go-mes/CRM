@@ -118,17 +118,15 @@ OUTPUT CONTRACT (text, no `SendMessage`), last line exactly one of:
 
 ## Feature-smoke mode (single-shot, no team)
 
-When your spawn prompt contains `MODE: feature-smoke`, drive the WHOLE integrated feature in
-demo mode to confirm it actually RUNS before handoff. This is Part C.3 (below) promoted from a
-single ticket's criteria to the feature's 2-3 key user flows. Start a `dev:demo` server (FakeRest,
-no Supabase, auto-authenticated) inside your worktree on a port unique to this session, walk the
-key flows via the Playwright MCP (`browser_navigate` -> `browser_snapshot`; `browser_take_screenshot`
-only for visual criteria; `browser_console_messages` for runtime errors), then ALWAYS tear down
-(`browser_close` + kill the server).
+When your spawn prompt contains `MODE: feature-smoke`, drive the WHOLE integrated feature against
+the configured Supabase environment before handoff. This is Part C.3 (below) promoted from a
+single ticket's criteria to the feature's 2-3 key user flows. It requires Vite Supabase environment
+variables and an approved test account. Start the normal Vite dev server inside your worktree on a
+port unique to this session, walk the key flows via Playwright MCP, then ALWAYS tear down the
+browser and server. Never fall back to fake data.
 
-Scope (state it in the report): demo mode covers rendering, routing, forms, filters and visual
-correctness; it does NOT cover auth, RLS, triggers, views, edge functions or real backend behavior
-(those are the Supabase e2e suite's job, run separately by `e2e-smoke.sh`).
+Scope (state it in the report): smoke results cover only the flows and account exercised; they do
+not replace the isolated Supabase e2e suite run separately by `e2e-smoke.sh`.
 
 OUTPUT CONTRACT (text, last line): `APPROVED` (all key flows run) or `BLOCKED:` + the broken flows
 (one per line: flow, what failed).
@@ -405,14 +403,12 @@ wiring, and e2e presence are yours to check here.
 
 ### Sandbox awareness
 
-Typically unavailable in the dev sandbox: a running Supabase stack on 54341; a
-display for headed browsers; auth against a real backend (sign-in/sign-up taps
-the Supabase Auth API). For runtime checks, prefer **demo mode** (C.3) — it runs
-on FakeRest entirely in the browser, needs no Supabase and no auth, so most
-behavior-verifiable criteria become reachable. The Playwright MCP runs headless
-(configured in `.mcp.json`), so no display is needed. If you still hit a hard
-limitation (a flow that genuinely requires the real Auth API, or the browser
-binary is missing — do NOT run `npx playwright install`), **don't retry** —
+note the limitation and let CI cover it. A sandbox limitation alone is never a
+Runtime checks require Supabase environment variables and a suitable test
+account. Never substitute a mock provider or fake data when they are absent;
+report the smoke as blocked and let the Supabase e2e suite cover it. The
+Playwright MCP runs headless (configured in `.mcp.json`), so no display is
+needed. If the browser binary is missing, do NOT run `npx playwright install`;
 note the limitation and let CI cover it. A sandbox limitation alone is never a
 REJECTED.
 
@@ -440,44 +436,32 @@ Renaming sanity:
 Any failure → REJECTED. (Migrations are NOT checked here — SQL is generated at
 deploy time from the session-branch diff, not in a feature TASK.)
 
-### C.3 Runtime verification — demo mode + Playwright MCP
+### C.3 Runtime verification — Supabase dev server + Playwright MCP
 
-**Skip entirely** if no acceptance criterion is behavior-verifiable, or the flow
-genuinely requires the real Supabase Auth API (demo mode can't reach it) — note
-that CI will cover it. Do NOT run `npx playwright install`.
+**Skip** if no acceptance criterion is behavior-verifiable, required Supabase
+environment variables or a suitable test account are unavailable, or the browser
+runtime is missing; record the limitation. Do NOT use a mock provider or run
+`npx playwright install`.
 
-**Run when** at least one behavior-verifiable criterion exists. Drive the app
-interactively via the Playwright MCP against a demo-mode server you start inside
-**your own worktree** (never `$REPO` — that serves the wrong branch):
+**Run when** at least one behavior-verifiable criterion exists and a safe test
+environment is available. Drive the app via Playwright MCP against the normal
+Vite dev server started inside **your own worktree** (never `$REPO`):
 
-1. **Start the server (background, from the worktree).** The launch command and
-   port base come from `config.app` (`smokeCommand` + `portBase`, currently
-   `npm run dev:demo` and `5300`). Pick a port unique to this task to avoid
-   collisions with parallel reviewers: `config.app.portBase` + the TASK number
-   (e.g. TASK-006 → `5306`):
-   ```bash
-   cd <WORKTREE_PATH> && npm run dev:demo -- --port <PORT> --strictPort
-   ```
-   Run it with `run_in_background: true`. Demo mode uses FakeRest and is
-   auto-authenticated — no Supabase, no login.
-2. **Wait until ready**, then drive it. The app uses hash routing, so navigate to
-   `http://localhost:<PORT>/#/<route>`:
-   - `browser_navigate` → `browser_snapshot` (accessibility tree — token-cheap,
-     use this to assert structure, reachability, and state transitions).
-   - `browser_click` / `browser_fill_form` / `browser_select_option` to walk a
-     multi-step flow when the criterion requires it.
-   - `browser_take_screenshot` only when a criterion is **visual** (legibility,
-     layout, theme/dark-mode) — then `Read` the PNG. Text invisible on its
-     background in any theme or interaction state → REJECTED.
-   - `browser_console_messages` to catch runtime errors the snapshot hides.
-3. **Tear down (always):** `browser_close`, then kill the background server
-   (`kill <pid>` of the `dev:demo` process you started). Leaving it running
-   stalls the SubagentStop validation chain.
+1. **Configure the environment.** Ensure `VITE_SUPABASE_URL` and
+  `VITE_SB_PUBLISHABLE_KEY` point to the approved test project. Use a test
+  account and avoid writes to shared production data.
+2. **Start the server in the background.** Use `config.app.smokeCommand` and
+  `config.app.portBase` plus the TASK number:
+  ```bash
+  cd <WORKTREE_PATH> && npm run dev -- --port <PORT> --strictPort
+  ```
+  The app uses hash routing; navigate to `http://localhost:<PORT>/#/<route>`.
+  Use `browser_snapshot` for behavior and `browser_take_screenshot` only for
+  visual criteria. Check browser console messages for runtime errors.
+3. **Tear down:** close the browser and kill the dev server before stopping.
 
-A red criterion verified here is a `[FAIL]` → REJECTED. For a single static shot
-with no interaction, use `browser_navigate` + `browser_take_screenshot` as above:
-there is no `npx playwright screenshot` CLI in the pinned Playwright (1.60 exposes
-only `playwright trace screenshot`).
+A red criterion verified here is a `[FAIL]` -> REJECTED. For a single static
+shot, use `browser_navigate` and `browser_take_screenshot`.
 
 ### C.4 e2e spec sanity (read-only)
 

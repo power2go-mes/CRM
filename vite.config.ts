@@ -39,9 +39,6 @@ export default defineConfig({
   define:
     process.env.NODE_ENV === "production" && process.env.VITE_SUPABASE_URL
       ? {
-          "import.meta.env.VITE_IS_DEMO": JSON.stringify(
-            process.env.VITE_IS_DEMO,
-          ),
           "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(
             process.env.VITE_SUPABASE_URL,
           ),
@@ -61,7 +58,7 @@ export default defineConfig({
     keepNames: true,
   },
   build: {
-    sourcemap: true,
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks(id) {

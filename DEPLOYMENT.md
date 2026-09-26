@@ -1,52 +1,68 @@
 # FINLONEXA Vercel Deployment Guide
 
-## Vercel project setup
+## Detected project settings
 
-1. Import the repository into Vercel.
-2. Set the framework preset to `Vite`.
-3. Use the repository root as the root directory.
-4. Set the build command to `npm run build`.
-5. Set the output directory to `dist`.
-6. Set the install command to `npm install`.
-7. Set Node to `22.x` unless the project has a stricter runtime requirement in the selected environment.
+- Framework: Vite + React + TypeScript
+- Package manager: npm, using `package-lock.json`
+- Node.js: `24.x` (the local runtime is Node `v24.19.0`; Vite supports Node 24)
+- Temporary URL target: `https://crm-elve.vercel.app`
+- Root directory: repository root (`.`)
+- Install command: `npm ci`
+- Build command: `npm run build` (TypeScript check followed by `vite build`)
+- Output directory: `dist`
+- SPA routing: React Admin uses hash routing; Vercel also rewrites direct paths to `/index.html`
 
-## Required environment variables
+## Vercel setup
 
-Set these variables in the Vercel project environment for the production scope:
+1. Import this repository and select the repository root.
+2. Set Framework Preset to `Vite`.
+3. Set Install Command to `npm ci`.
+4. Set Build Command to `npm run build`.
+5. Set Output Directory to `dist`.
+6. Set the Node.js version to `24.x`.
+7. Add the required environment variables below to the Production, Preview, and Development scopes as appropriate.
+
+`vercel.json` contains the Vite SPA rewrite, cache rules, and security headers. The CSP permits same-origin resources and Supabase project connections over HTTPS/WSS; review it if the app adds another API, external font, or embedded content provider.
+
+## Environment variables
+
+Required for the production browser app:
 
 - `VITE_SUPABASE_URL`
 - `VITE_SB_PUBLISHABLE_KEY`
-- `VITE_INBOUND_EMAIL`
-- `VITE_ATTACHMENTS_BUCKET`
-- `VITE_IS_DEMO`
-- `VITE_DISABLE_EMAIL_PASSWORD_AUTHENTICATION`
-- `VITE_GOOGLE_WORKPLACE_DOMAIN` (optional, only if Google Workplace SSO is configured)
 
-Do not add service-role keys, admin secrets, or other privileged credentials to browser-visible Vercel variables.
+Optional frontend settings:
 
-## Supabase Auth configuration
+- `VITE_ATTACHMENTS_BUCKET` (defaults to `attachments`)
+- `VITE_INBOUND_EMAIL` (displays inbound-email setup details)
+- `VITE_DISABLE_EMAIL_PASSWORD_AUTHENTICATION` (when unset, email/password login remains enabled)
+- `VITE_GOOGLE_WORKPLACE_DOMAIN` (only when Google Workspace SSO is configured)
 
-In the hosted Supabase dashboard:
+These Vite variables are included in browser code and must contain only public configuration. Never set a service-role key, database password, Postmark webhook password, or other privileged secret as a `VITE_` variable. Configure Edge Function secrets in Supabase, not in Vercel frontend variables.
 
-1. Set the Site URL to the production Vercel domain, for example `https://<production-domain>`.
-2. Add redirect URLs such as `https://<production-domain>/**` and preserve local development exceptions like `http://localhost:5173/**`.
-3. Verify the forgot password and invitation flows point back to the production application and not to localhost.
+Set both required variables in Vercel's Production scope. Set them in Preview only when preview builds should connect to Supabase. Preview deployments can perform real writes: use a separate Supabase project for Preview when isolation is required. Set Development values only if using Vercel's Development environment; local Vite development reads the ignored `.env.local` file.
 
-## Domain and DNS
+## Supabase Auth URLs
 
-1. Add the Vercel project to the desired custom domain.
-2. Configure the DNS records in the domain provider for the Vercel domain.
-3. Verify the live domain matches the Supabase Site URL.
-4. Keep `crm.elvaveo.com` as the target production hostname.
+In Supabase Dashboard, open **Authentication > URL Configuration** and configure:
 
-## Post-deployment checks
+- Site URL: `https://crm-elve.vercel.app`
+- Redirect URL: `https://crm-elve.vercel.app/**`
+- Local development redirect URL, if needed: `http://localhost:5173/**`
 
-1. Confirm the app loads without `404` errors on direct navigation to `/`, `/dashboard`, `/leads`, `/contacts`, `/companies`, `/opportunities`, `/pipeline`, `/tasks`, and `/profile`.
-2. Confirm login, logout, forgot password, set password, and invite flows work against the hosted Supabase project.
-3. Confirm the app responds correctly when required environment variables are present.
-4. Confirm no local `localhost` endpoints are required at runtime in production.
-5. Confirm the app still respects the verified role hierarchy and lead ownership rules.
+Password recovery and invitation emails use the configured Supabase Site URL unless a redirect is explicitly supplied, so test those links after configuring the temporary Vercel URL.
 
-## Preview safety
+Public signup is not exposed: `/sign-up` redirects to `/login`. Super Admin user creation calls the authenticated `admin-create-user` Supabase Edge Function; the service-role key remains server-side.
 
-Preview deployments can write to the same hosted Supabase project as production. Treat preview data as real data unless it is intentionally isolated in a separate environment.
+## Post-deployment checklist
+
+- Confirm `/` (dashboard), `/#/leads`, `/#/contacts`, `/#/companies`, `/#/deals` (opportunities/pipeline), `/#/tasks`, and `/#/profile` load after direct navigation and refresh. The dashboard is the root route; the pipeline is the `deals` resource.
+- Test login, session persistence after refresh/new tab, logout, forgot password, set password, and Super Admin account creation with a test account.
+- Confirm Supabase requests succeed and inspect browser network/console output for CORS, authorization, or runtime errors.
+- Check desktop, tablet, and mobile layouts for login, dashboard, lead detail, tasks, and pipeline.
+- Confirm user role scopes, lead ownership, assigned-BDO visibility, and RLS in the hosted project remain as intended.
+- Review Vercel response headers and confirm the deployed build points to the intended Supabase project.
+
+## Database status
+
+This repository contains migrations through `202609250013_lead_owner_and_assigned_bdo.sql`. The hosted project's applied/pending migration state must be checked with an authenticated Supabase CLI connection; do not reset the database or apply migrations as part of a Vercel deployment.

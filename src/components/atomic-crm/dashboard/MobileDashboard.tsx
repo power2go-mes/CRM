@@ -1,4 +1,3 @@
-import { Welcome } from "./Welcome";
 import MobileHeader from "../layout/MobileHeader";
 import { MobileContent } from "../layout/MobileContent";
 import { useConfigurationContext } from "../root/ConfigurationContext";
@@ -24,7 +23,6 @@ export const MobileDashboard = () => {
   return (
     <Wrapper>
       <div className="mt-1">
-        {import.meta.env.VITE_IS_DEMO === "true" ? <Welcome /> : null}
         <SalesOverview />
       </div>
     </Wrapper>

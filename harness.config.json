@@ -51,12 +51,11 @@
     "provision": "npm-link"
   },
   "app": {
-    "smokeCommand": "npm run dev:demo",
+    "smokeCommand": "npm run dev",
     "portBase": 5300,
     "portArg": "--port",
     "strictPortArg": "--strictPort",
-    "hashRouting": true,
-    "demoMode": true
+    "hashRouting": true
   },
   "deploy": {
     "adapter": "supabase",

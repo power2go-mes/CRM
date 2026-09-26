@@ -11,7 +11,6 @@ Atomic CRM is a full-featured CRM built with React, shadcn-admin-kit, and Supaba
 make install          # Install dependencies (frontend, backend, local Supabase)
 make start            # Start full stack with real API (Supabase + Vite dev server)
 make stop             # Stop the stack
-make start-demo       # Start full-stack with FakeRest data provider
 ```
 
 ### Testing and Code Quality
@@ -129,17 +128,13 @@ Located in `supabase/functions/`:
 - User management (creating/updating users, account disabling)
 - Inbound email webhook processing
 
-#### Data Providers
+#### Data Provider
 
-Two data providers are available:
-1. **Supabase** (default): Production backend using PostgreSQL
-2. **FakeRest**: In-browser fake API for development/demos, resets on page reload
-
-When using FakeRest, database views are emulated in the frontend. Test data generators are in `src/components/atomic-crm/providers/fakerest/dataGenerator/`.
+The application always uses the Supabase data provider. FakeRest fixtures and generators are retained only for automated tests and are not selected by the application runtime.
 
 #### Filter Syntax
 
-List filters follow the `ra-data-postgrest` convention with operator concatenation: `field_name@operator` (e.g., `first_name@eq`). The FakeRest adapter maps these to FakeRest syntax at runtime.
+List filters follow the `ra-data-postgrest` convention with operator concatenation: `field_name@operator` (e.g., `first_name@eq`).
 
 ## Development Workflows
 
@@ -159,10 +154,9 @@ When modifying contact or company data structures:
 3. Apply it: `npx supabase migration up --local`
 4. Update the CSV sample of the resource: `src/components/atomic-crm/contacts/contacts_export.csv`, `src/components/atomic-crm/dataImport/companies_sample.csv` or `src/components/atomic-crm/dataImport/deals_sample.csv`
 5. Update the matching import function: `src/components/atomic-crm/contacts/useContactImport.tsx`, `src/components/atomic-crm/dataImport/useCompanyImport.ts` or `src/components/atomic-crm/dataImport/useDealImport.ts`
-6. If using FakeRest, update data generators in `src/components/atomic-crm/providers/fakerest/dataGenerator/`
-7. Don't forget to update the related view (`contacts_summary`, `companies_summary`) in `03_views.sql`
-8. Don't forget the export functions
-9. Don't forget the contact merge logic
+6. Don't forget to update the related view (`contacts_summary`, `companies_summary`) in `03_views.sql`
+7. Don't forget the export functions
+8. Don't forget the contact merge logic
 
 ### Running with Test Data
 
@@ -186,5 +180,4 @@ Import `test-data/contacts.csv` via the Contacts page → Import button.
 - Modify files in `src/components/admin` and `src/components/ui` directly - they are meant to be customized
 - Unit tests can be added in the `src/` directory (test files are named `*.test.ts` or `*.test.tsx`)
 - User deletion is not supported to avoid data loss; use account disabling instead
-- Filter operators must be supported by the `supabaseAdapter` when using FakeRest
 - Optional terse output for solo work: the `concise-dev` style ships at `.claude/styles/concise-dev.md`. To enable it just for yourself, copy it into `.claude/output-styles/` (or `~/.claude/output-styles/`) and run `/output-style concise-dev`, or set `"outputStyle": "concise-dev"` in your own `.claude/settings.local.json`. It is not enabled in the committed `settings.json`.
