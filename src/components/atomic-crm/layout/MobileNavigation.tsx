@@ -1,0 +1,184 @@
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import { Home, ListTodo, Plus, UserRoundPlus, Users } from "lucide-react";
+import { useTranslate } from "ra-core";
+import { Link, matchPath, useLocation, useMatch } from "react-router";
+import { ContactCreateSheet } from "../contacts/ContactCreateSheet";
+import { useState } from "react";
+import { NoteCreateSheet } from "../notes/NoteCreateSheet";
+import { TaskCreateSheet } from "../tasks/TaskCreateSheet";
+
+export const MobileNavigation = () => {
+  const location = useLocation();
+  const translate = useTranslate();
+
+  let currentPath: string | boolean = "/";
+  if (matchPath("/", location.pathname)) {
+    currentPath = "/";
+  } else if (matchPath("/contacts/*", location.pathname)) {
+    currentPath = "/contacts";
+  } else if (matchPath("/companies/*", location.pathname)) {
+    currentPath = "/companies";
+  } else if (matchPath("/tasks/*", location.pathname)) {
+    currentPath = "/tasks";
+  } else if (matchPath("/deals/*", location.pathname)) {
+    currentPath = "/deals";
+  } else if (matchPath("/leads/*", location.pathname)) {
+    currentPath = "/leads";
+  } else {
+    currentPath = false;
+  }
+
+  // Check if the app is running as a PWA (standalone mode)
+  const isPwa = window.matchMedia("(display-mode: standalone)").matches;
+  // Check if it's iOS on the web
+  const isWebiOS = /iPad|iPod|iPhone/.test(window.navigator.userAgent);
+
+  return (
+    <nav
+      aria-label={translate("crm.navigation.label")}
+      className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t border-border/80 bg-card/90 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-md"
+      style={{
+        // iOS bug: even though viewport is set correctly, the bottom safe area inset is not accounted for
+        // So we manually add some padding to avoid the navigation being too close to the home bar
+        paddingBottom: isPwa && isWebiOS ? 15 : undefined,
+        // We use box-sizing: border-box, so the height contains the padding.
+        // To actually increase the padding, we need to increase the height as well
+        height:
+          "calc(var(--spacing)) * 6" + (isPwa && isWebiOS ? " + 15px" : ""),
+      }}
+    >
+      <div className="flex h-full w-full items-center justify-center gap-1 px-1">
+        <>
+          <NavigationButton
+            href="/"
+            Icon={Home}
+            label={translate("ra.page.dashboard")}
+            isActive={currentPath === "/"}
+          />
+          <NavigationButton
+            href="/contacts"
+            Icon={Users}
+            label={translate("resources.contacts.name", {
+              smart_count: 2,
+            })}
+            isActive={currentPath === "/contacts"}
+          />
+          <CreateButton />
+          <NavigationButton
+            href="/leads"
+            Icon={UserRoundPlus}
+            label="Leads"
+            isActive={currentPath === "/leads"}
+          />
+          <NavigationButton
+            href="/tasks"
+            Icon={ListTodo}
+            label={translate("resources.tasks.name", { smart_count: 2 })}
+            isActive={currentPath === "/tasks"}
+          />
+        </>
+      </div>
+    </nav>
+  );
+};
+
+const NavigationButton = ({
+  href,
+  Icon,
+  label,
+  isActive,
+}: {
+  href: string;
+  Icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  label: string;
+  isActive: boolean;
+}) => (
+  <Button
+    asChild
+    variant="ghost"
+    className={cn(
+              "min-w-0 flex-1 flex-col gap-1 h-auto rounded-xl py-2 px-0 transition-all duration-200",
+              isActive
+                ? "bg-primary/8 text-primary shadow-[0_8px_18px_rgba(37,99,235,0.12)]"
+                : "text-muted-foreground hover:bg-accent/70",
+    )}
+  >
+    <Link to={href}>
+      <Icon className="size-6" />
+              <span className="max-w-full truncate text-[0.6rem] font-semibold">{label}</span>
+    </Link>
+  </Button>
+);
+
+const CreateButton = () => {
+  const translate = useTranslate();
+  const contact_id = useMatch("/contacts/:id/*")?.params.id;
+  const [contactCreateOpen, setContactCreateOpen] = useState(false);
+  const [noteCreateOpen, setNoteCreateOpen] = useState(false);
+  const [taskCreateOpen, setTaskCreateOpen] = useState(false);
+
+  return (
+    <>
+      <ContactCreateSheet
+        open={contactCreateOpen}
+        onOpenChange={setContactCreateOpen}
+      />
+      <NoteCreateSheet
+        open={noteCreateOpen}
+        onOpenChange={setNoteCreateOpen}
+        contact_id={contact_id}
+      />
+      <TaskCreateSheet
+        open={taskCreateOpen}
+        onOpenChange={setTaskCreateOpen}
+        contact_id={contact_id}
+      />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="default"
+            size="icon"
+            className="h-16 w-16 rounded-full -mt-3 border border-primary/25 bg-primary text-primary-foreground shadow-[0_18px_30px_rgba(37,99,235,0.28)]"
+            aria-label={translate("ra.action.create")}
+          >
+            <Plus className="size-10" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem
+            className="h-12 px-4 text-base"
+            onSelect={() => {
+              setContactCreateOpen(true);
+            }}
+          >
+            {translate("resources.contacts.forcedCaseName")}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="h-12 px-4 text-base"
+            onSelect={() => {
+              setNoteCreateOpen(true);
+            }}
+          >
+            {translate("resources.notes.forcedCaseName")}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="h-12 px-4 text-base"
+            onSelect={() => {
+              setTaskCreateOpen(true);
+            }}
+          >
+            {translate("resources.tasks.forcedCaseName")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
+  );
+};
+

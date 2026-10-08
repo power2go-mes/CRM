@@ -1,0 +1,1252 @@
+import { useMemo, useState } from "react";
+import { useGetIdentity, useGetList } from "ra-core";
+import { ResponsiveBar } from "@nivo/bar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Deal, Lead, Region, Sale, Task } from "../types";
+import { ROLE_LABELS, type CrmRole } from "../providers/commons/roles";
+import { useConfigurationContext } from "../root/ConfigurationContext";
+import { Link } from "react-router";
+
+type Period = "month" | "week" | "quarter" | "year" | "all";
+type Identity = Partial<
+  Pick<
+    Sale,
+    | "id"
+    | "role"
+    | "region_id"
+    | "region"
+    | "reports_to_user_id"
+    | "designation"
+    | "first_name"
+    | "last_name"
+    | "user_id"
+  >
+> & { fullName?: string };
+type Kpis = {
+  pipeline: number;
+  open: number;
+  won: number;
+  lost: number;
+  wonValue: number;
+  pending: number;
+  overdue: number;
+};
+const query = {
+  pagination: { page: 1, perPage: 1000 },
+  sort: { field: "id", order: "ASC" as const },
+  filter: {},
+};
+const managementRoles: CrmRole[] = [
+  "asm",
+  "ssm",
+  "rsm",
+  "head_of_sales",
+  "super_admin",
+];
+
+export const SalesOverview = () => {
+  const { identity: rawIdentity } = useGetIdentity();
+  const identity = rawIdentity as Identity | undefined;
+  const { currency } = useConfigurationContext();
+  const [period, setPeriod] = useState<Period>("month");
+  const [selectedUser, setSelectedUser] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState("");
+  const sales = useGetList<Sale>("sales", query);
+  const deals = useGetList<Deal>("deals", query);
+  const tasks = useGetList<Task>("tasks", query);
+  const regions = useGetList<Region>("regions", {
+    ...query,
+    sort: { field: "name", order: "ASC" as const },
+  });
+  const leads = useGetList<Lead>("leads", query);
+  if ([sales, deals, tasks, leads].some((request) => request.isPending))
+    return <DashboardState text="Loading dashboard…" />;
+  if ([sales, deals, tasks, leads].some((request) => request.error))
+    return <DashboardState text="Unable to load dashboard data." />;
+  const role = identity?.role ?? "bdo";
+  const allUsers = sales.data ?? [];
+  const currentId = identity?.id;
+  // Head of Sales manages the sales organization, never Super Admin accounts.
+  const dashboardUsers =
+    role === "head_of_sales"
+      ? allUsers.filter((user) => user.role !== "super_admin")
+      : allUsers;
+  const accessible = accessibleUsers(
+    role,
+    currentId,
+    identity?.region_id,
+    dashboardUsers,
+  );
+  const allowedUsers = dashboardUsers.filter(
+    (user) =>
+      accessible.has(String(user.id)) &&
+      (!selectedRegion || String(user.region_id) === selectedRegion),
+  );
+  const selectedIds = new Set(
+    selectedUser ? [selectedUser] : allowedUsers.map((user) => String(user.id)),
+  );
+  const inScope = <T extends { sales_id?: unknown }>(records: T[]) =>
+    records.filter((record) => selectedIds.has(String(record.sales_id)));
+  const scopedDeals = inScope(deals.data ?? []);
+  const scopedTasks = inScope(tasks.data ?? []);
+  // Leads use an additive Owner + Assigned BDO model. BDO metrics must never
+  // use owner_sales_id: the BDO works only records assigned to them.
+  const scopedLeads = (leads.data ?? []).filter((lead) => {
+    if (role === "bdo")
+      return String(lead.assigned_bdo_id) === String(currentId);
+    if (role === "rsm")
+      return String(lead.region_id) === String(identity?.region_id);
+    if (["super_admin", "head_of_sales"].includes(role)) {
+      return !selectedRegion || String(lead.region_id) === selectedRegion;
+    }
+    return (
+      selectedIds.has(String(lead.owner_sales_id)) ||
+      selectedIds.has(String(lead.assigned_bdo_id))
+    );
+  });
+  const datedDeals = scopedDeals.filter((deal) =>
+    inPeriod(deal.created_at, period),
+  );
+  const kpis = makeKpis(datedDeals, scopedTasks);
+  const manager = allUsers.find(
+    (user) => user.user_id === identity?.reports_to_user_id,
+  );
+  const formatMoney = (value: number) =>
+    value.toLocaleString(undefined, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    });
+  const common = {
+    role,
+    kpis,
+    scopedDeals: datedDeals,
+    scopedTasks,
+    scopedLeads,
+    allowedUsers,
+    allUsers: dashboardUsers,
+    regions: regions.data ?? [],
+    formatMoney,
+  };
+  return (
+    <section className="space-y-6">
+      <DashboardHeader
+        role={role}
+        identity={identity}
+        manager={manager}
+        allUsers={dashboardUsers}
+        regions={regions.data ?? []}
+      />
+      <div className="crm-section-card flex flex-wrap items-center gap-3 p-3 md:p-4">
+        <PeriodFilter value={period} onChange={setPeriod} />
+        {managementRoles.includes(role) && (
+          <UserFilter
+            users={allowedUsers}
+            value={selectedUser}
+            onChange={setSelectedUser}
+          />
+        )}
+        {["head_of_sales", "super_admin"].includes(role) && (
+          <RegionFilter
+            regions={regions.data ?? []}
+            value={selectedRegion}
+            onChange={(value) => {
+              setSelectedRegion(value);
+              setSelectedUser("");
+            }}
+          />
+        )}
+      </div>
+      <RoleDashboard {...common} />
+    </section>
+  );
+};
+
+const accessibleUsers = (
+  role: CrmRole,
+  currentId: unknown,
+  regionId: unknown,
+  users: Sale[],
+) => {
+  if (["super_admin", "head_of_sales"].includes(role))
+    return new Set(users.map((user) => String(user.id)));
+  if (role === "rsm")
+    return new Set(
+      users
+        .filter((user) => String(user.region_id) === String(regionId))
+        .map((user) => String(user.id)),
+    );
+  const currentUser = users.find(
+    (user) => String(user.id) === String(currentId),
+  );
+  if (!currentUser) return new Set<string>();
+
+  const accessibleIds = new Set([String(currentUser.id)]);
+  const managerUserIds = new Set([currentUser.user_id]);
+  let changed = true;
+  while (changed && role !== "bdo") {
+    changed = false;
+    users.forEach((user) => {
+      if (
+        user.reports_to_user_id != null &&
+        managerUserIds.has(user.reports_to_user_id) &&
+        !accessibleIds.has(String(user.id))
+      ) {
+        accessibleIds.add(String(user.id));
+        managerUserIds.add(user.user_id);
+        changed = true;
+      }
+    });
+  }
+  return accessibleIds;
+};
+const inPeriod = (date: string, period: Period) => {
+  if (period === "all") return true;
+  const value = new Date(date);
+  if (Number.isNaN(value.getTime())) return false;
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (period === "week")
+    start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+  if (period === "month") start.setDate(1);
+  if (period === "quarter") {
+    start.setMonth(Math.floor(start.getMonth() / 3) * 3, 1);
+  }
+  if (period === "year") start.setMonth(0, 1);
+  return value >= start && value <= now;
+};
+const makeKpis = (deals: Deal[], tasks: Task[]): Kpis => {
+  const open = deals.filter(
+    (deal) =>
+      !["won", "lost"].includes(deal.stage.toLowerCase()) && !deal.archived_at,
+  );
+  const won = deals.filter((deal) => deal.stage.toLowerCase() === "won");
+  const now = new Date();
+  return {
+    pipeline: open.reduce((total, deal) => total + (deal.amount ?? 0), 0),
+    open: open.length,
+    won: won.length,
+    lost: deals.filter((deal) => deal.stage.toLowerCase() === "lost").length,
+    wonValue: won.reduce((total, deal) => total + (deal.amount ?? 0), 0),
+    pending: tasks.filter((task) => !task.done_date).length,
+    overdue: tasks.filter(
+      (task) => !task.done_date && new Date(task.due_date) < now,
+    ).length,
+  };
+};
+
+const DashboardHeader = ({
+  role,
+  identity,
+  manager,
+  allUsers,
+  regions,
+}: {
+  role: CrmRole;
+  identity?: Identity;
+  manager?: Sale;
+  allUsers: Sale[];
+  regions: Region[];
+}) => {
+  const titles: Record<CrmRole, string> = {
+    bdo: "My Dashboard",
+    asm: "Team Dashboard",
+    ssm: "Sales Team Dashboard",
+    rsm: "Regional Dashboard",
+    head_of_sales: "Sales Organization Dashboard",
+    super_admin: "FINLONEXA Control Center",
+  };
+  const descriptions: Record<CrmRole, string> = {
+    bdo: "Manage your assigned Leads, follow-ups, tasks, opportunities, and pipeline.",
+    asm: "Manage your BDO team, Lead assignments, follow-ups, and sales performance.",
+    ssm: "Monitor ASM teams, BDO performance, Leads, pipeline, and task execution.",
+    rsm: "Monitor sales performance across your Region.",
+    head_of_sales: "Monitor sales performance across all Regions.",
+    super_admin:
+      "Monitor users, Regions, Leads, sales performance, and system administration.",
+  };
+  const assignedRegion = regions.find(
+    (item) => String(item.id) === String(identity?.region_id),
+  )?.name;
+  const region = ["bdo", "asm", "ssm", "rsm"].includes(role)
+    ? (assignedRegion ?? identity?.region ?? "All Regions")
+    : (identity?.region ?? "All Regions");
+  const name =
+    identity?.fullName ||
+    `${identity?.first_name ?? ""} ${identity?.last_name ?? ""}`.trim();
+  const summary =
+    role === "super_admin"
+      ? `All users: ${allUsers.length}`
+      : role === "head_of_sales"
+        ? "All regions"
+        : manager
+          ? `Reports to: ${manager.first_name} ${manager.last_name}`
+          : null;
+  return (
+    <div className="crm-page-header">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="crm-panel-label mb-2">Executive overview</p>
+          <h2 className="text-3xl font-semibold tracking-[-0.04em] text-foreground md:text-4xl">
+            {titles[role]}
+          </h2>
+        </div>
+        <div className="rounded-full border border-primary/15 bg-primary/5 px-3 py-2 text-sm font-medium text-primary shadow-[0_8px_18px_rgba(79,70,229,0.08)]">
+          {name} · {ROLE_LABELS[role]} · {region}
+        </div>
+      </div>
+      <p className="max-w-3xl text-sm text-muted-foreground md:text-[15px]">
+        {descriptions[role]}
+      </p>
+      {summary ? (
+        <p className="text-sm text-muted-foreground">{summary}</p>
+      ) : null}
+    </div>
+  );
+};
+const PeriodFilter = ({
+  value,
+  onChange,
+}: {
+  value: Period;
+  onChange: (value: Period) => void;
+}) => (
+  <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+    <span className="crm-panel-label !text-[10px]">Period</span>
+    <select
+      className="crm-select min-w-[146px]"
+      value={value}
+      onChange={(event) => onChange(event.target.value as Period)}
+    >
+      <option value="month">This Month</option>
+      <option value="week">This Week</option>
+      <option value="quarter">This Quarter</option>
+      <option value="year">This Year</option>
+      <option value="all">All Time</option>
+    </select>
+  </label>
+);
+const UserFilter = ({
+  users,
+  value,
+  onChange,
+}: {
+  users: Sale[];
+  value: string;
+  onChange: (value: string) => void;
+}) => (
+  <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+    <span className="crm-panel-label !text-[10px]">Team member</span>
+    <select
+      className="crm-select min-w-[180px]"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    >
+      <option value="">All allowed users</option>
+      {users.map((user) => (
+        <option key={user.id} value={String(user.id)}>
+          {user.first_name} {user.last_name} · {ROLE_LABELS[user.role]}
+        </option>
+      ))}
+    </select>
+  </label>
+);
+const RegionFilter = ({
+  regions,
+  value,
+  onChange,
+}: {
+  regions: Region[];
+  value: string;
+  onChange: (value: string) => void;
+}) => (
+  <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+    <span className="crm-panel-label !text-[10px]">Region</span>
+    <select
+      className="crm-select min-w-[160px]"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    >
+      <option value="">All regions</option>
+      {regions.map((region) => (
+        <option key={region.id} value={String(region.id)}>
+          {region.name}
+        </option>
+      ))}
+    </select>
+  </label>
+);
+
+type Common = {
+  role: CrmRole;
+  kpis: Kpis;
+  scopedDeals: Deal[];
+  scopedTasks: Task[];
+  scopedLeads: Lead[];
+  allowedUsers: Sale[];
+  allUsers: Sale[];
+  regions: Region[];
+  formatMoney: (value: number) => string;
+};
+const LeadKpis = ({ leads }: { leads: Lead[] }) => {
+  const count = (status: Lead["status"]) =>
+    leads.filter((lead) => lead.status === status).length;
+  const converted = count("converted");
+  return (
+    <KpiGrid
+      items={[
+        ["Total Leads", leads.length],
+        ["New Leads", count("new")],
+        ["Contacted Leads", count("contacted")],
+        ["Qualified Leads", count("qualified")],
+        ["Unqualified Leads", count("unqualified")],
+        ["Converted Leads", converted],
+        [
+          "Lead Conversion Rate",
+          leads.length
+            ? `${Math.round((converted / leads.length) * 100)}%`
+            : "0%",
+        ],
+      ]}
+    />
+  );
+};
+const LeadPerformanceTable = ({
+  title,
+  users,
+  leads,
+  deals,
+  tasks,
+  money,
+}: {
+  title: string;
+  users: Sale[];
+  leads: Lead[];
+  deals: Deal[];
+  tasks: Task[];
+  money: (value: number) => string;
+}) => (
+  <Card className="overflow-hidden border-primary/10 bg-gradient-to-br from-indigo-50/80 via-white to-cyan-50/80">
+    <CardHeader className="border-b border-border/80 bg-white/40">
+      <CardTitle>{title}</CardTitle>
+    </CardHeader>
+    <CardContent className="p-0">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50/80 text-left text-muted-foreground">
+            <tr>
+              <th className="px-4 py-3">User</th>
+              <th className="px-4 py-3">Assigned</th>
+              <th className="px-4 py-3">New</th>
+              <th className="px-4 py-3">Contacted</th>
+              <th className="px-4 py-3">Qualified</th>
+              <th className="px-4 py-3">Converted</th>
+              <th className="px-4 py-3">Rate</th>
+              <th className="px-4 py-3">Won value</th>
+              <th className="px-4 py-3">Overdue</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.length ? (
+              users.map((user) => {
+                const list = leads.filter(
+                  (lead) =>
+                    String(lead.assigned_bdo_id) === String(user.id) ||
+                    String(lead.owner_sales_id) === String(user.id),
+                );
+                const converted = list.filter(
+                  (lead) => lead.status === "converted",
+                ).length;
+                return (
+                  <tr
+                    className="border-t border-border/70 bg-white/40"
+                    key={user.id}
+                  >
+                    <td className="px-4 py-3 font-medium">
+                      {user.first_name} {user.last_name}
+                    </td>
+                    <td className="px-4 py-3">{list.length}</td>
+                    <td className="px-4 py-3">
+                      {list.filter((lead) => lead.status === "new").length}
+                    </td>
+                    <td className="px-4 py-3">
+                      {
+                        list.filter((lead) => lead.status === "contacted")
+                          .length
+                      }
+                    </td>
+                    <td className="px-4 py-3">
+                      {
+                        list.filter((lead) => lead.status === "qualified")
+                          .length
+                      }
+                    </td>
+                    <td className="px-4 py-3">{converted}</td>
+                    <td className="px-4 py-3">
+                      {list.length
+                        ? `${Math.round((converted * 100) / list.length)}%`
+                        : "0%"}
+                    </td>
+                    <td className="px-4 py-3">
+                      {money(
+                        deals
+                          .filter(
+                            (deal) =>
+                              String(deal.sales_id) === String(user.id) &&
+                              deal.stage.toLowerCase() === "won",
+                          )
+                          .reduce((sum, deal) => sum + (deal.amount ?? 0), 0),
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {
+                        tasks.filter(
+                          (task) =>
+                            String(task.sales_id) === String(user.id) &&
+                            !task.done_date &&
+                            new Date(task.due_date) < new Date(),
+                        ).length
+                      }
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={9}>
+                  <Empty text="No users in this scope." />
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </CardContent>
+  </Card>
+);
+const OpportunityHealth = ({
+  deals,
+  tasks,
+}: {
+  deals: Deal[];
+  tasks: Task[];
+}) => {
+  const now = new Date();
+  const delayed = deals.filter(
+    (deal) => deal.stage.toLowerCase() === "delayed",
+  );
+  const closingSoon = deals.filter((deal) => {
+    const date = new Date(deal.expected_closing_date);
+    return !Number.isNaN(+date) && date >= now && +date - +now <= 7 * 86400000;
+  });
+  const overdue = tasks.filter(
+    (task) => !task.done_date && new Date(task.due_date) < now,
+  );
+  return (
+    <KpiGrid
+      items={[
+        ["Delayed Opportunities", delayed.length],
+        ["Closing Soon", closingSoon.length],
+        ["Overdue Follow-ups", overdue.length],
+      ]}
+    />
+  );
+};
+const QuickActions = () => (
+  <Card className="border-primary/10 bg-gradient-to-br from-primary/5 via-card to-cyan-500/5">
+    <CardHeader>
+      <CardTitle>Quick actions</CardTitle>
+      <CardContent className="!px-0 pt-2">
+        <div className="flex flex-wrap gap-3">
+          {[
+            ["Add User", "/users/create", "default"],
+            ["Users & Roles", "/users", "secondary"],
+            ["Add Region", "/regions/create", "outline"],
+            ["Region Management", "/regions", "secondary"],
+            ["Settings", "/settings", "ghost"],
+          ].map(([label, to, variant]) => (
+            <Link
+              className={`inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${variant === "default" ? "bg-primary text-primary-foreground shadow-[0_10px_22px_rgba(79,70,229,0.22)] hover:bg-primary/90" : variant === "secondary" ? "bg-secondary text-foreground hover:bg-secondary/80" : variant === "outline" ? "border border-border bg-card text-foreground hover:border-primary/30 hover:text-primary" : "text-foreground hover:bg-accent"}`}
+              key={to}
+              to={to}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+      </CardContent>
+    </CardHeader>
+  </Card>
+);
+const RoleDashboard = (data: Common) => {
+  if (data.role === "bdo") return <BdoWorkspace data={data} />;
+  if (data.role === "super_admin") {
+    const userMonitoringUsers = data.allowedUsers.filter(
+      (user) => !["super_admin", "head_of_sales"].includes(user.role),
+    );
+    return (
+      <>
+        <QuickActions />
+        <KpiGrid
+          items={[
+            ["Total Users", data.allUsers.length],
+            [
+              "Active Users",
+              data.allUsers.filter((user) => !user.disabled).length,
+            ],
+            [
+              "Inactive Users",
+              data.allUsers.filter((user) => user.disabled).length,
+            ],
+            ["Total Regions", data.regions.length],
+            ["Open Opportunities", data.kpis.open],
+            ["Won Deals", data.kpis.won],
+            ["Total Pipeline", data.formatMoney(data.kpis.pipeline)],
+            ["Won Value", data.formatMoney(data.kpis.wonValue)],
+          ]}
+        />
+        <LeadKpis leads={data.scopedLeads} />
+        <UsersByRole users={data.allUsers} />
+        <RegionPerformance
+          regions={data.regions}
+          users={data.allUsers}
+          deals={data.scopedDeals}
+          money={data.formatMoney}
+        />
+        <PerformanceTable
+          title="User monitoring"
+          users={userMonitoringUsers}
+          deals={data.scopedDeals}
+          tasks={data.scopedTasks}
+          money={data.formatMoney}
+        />
+      </>
+    );
+  }
+  const primaryUsers =
+    data.role === "asm"
+      ? data.allowedUsers.filter((user) => user.role === "bdo")
+      : data.role === "ssm"
+        ? data.allowedUsers.filter((user) => user.role === "asm")
+        : data.role === "rsm"
+          ? data.allowedUsers.filter((user) => user.role === "ssm")
+          : data.role === "head_of_sales"
+            ? data.allowedUsers.filter((user) => user.role === "rsm")
+            : data.allowedUsers;
+  const primaryTitle =
+    data.role === "asm"
+      ? "Direct BDO performance"
+      : data.role === "ssm"
+        ? "ASM performance"
+        : data.role === "rsm"
+          ? "SSM performance"
+          : "RSM performance";
+  const pipelineLabel =
+    data.role === "rsm"
+      ? "Regional Pipeline"
+      : data.role === "head_of_sales"
+        ? "Organization Pipeline"
+        : "Team Pipeline";
+  const active = (role: CrmRole) =>
+    data.allowedUsers.filter((user) => user.role === role && !user.disabled)
+      .length;
+  const roleItems: Array<[string, string | number]> = [
+    [pipelineLabel, data.formatMoney(data.kpis.pipeline)],
+    ["Open Opportunities", data.kpis.open],
+    ["Won Value", data.formatMoney(data.kpis.wonValue)],
+    ["Won Deals", data.kpis.won],
+    ["Pending Tasks", data.kpis.pending],
+    ["Overdue Tasks", data.kpis.overdue],
+  ];
+  if (data.role === "asm") roleItems.push(["Active BDOs", active("bdo")]);
+  if (data.role === "ssm")
+    roleItems.push(
+      ["Active ASMs", active("asm")],
+      ["Active BDOs", active("bdo")],
+    );
+  if (data.role === "rsm")
+    roleItems.push(
+      [
+        "Active Sales Users",
+        data.allowedUsers.filter((user) => !user.disabled).length,
+      ],
+      ["Active SSMs", active("ssm")],
+      ["Active ASMs", active("asm")],
+      ["Active BDOs", active("bdo")],
+    );
+  if (data.role === "head_of_sales")
+    roleItems.push(
+      [
+        "Active Sales Users",
+        data.allowedUsers.filter((user) => !user.disabled).length,
+      ],
+      ["Regions", data.regions.length],
+      ["RSMs", active("rsm")],
+      ["SSMs", active("ssm")],
+      ["ASMs", active("asm")],
+      ["BDOs", active("bdo")],
+    );
+  return (
+    <>
+      <KpiGrid items={roleItems} />
+      <LeadKpis leads={data.scopedLeads} />
+      <PipelineSummary deals={data.scopedDeals} money={data.formatMoney} />
+      <LeadPerformanceTable
+        title={
+          data.role === "asm"
+            ? "BDO Lead Performance"
+            : data.role === "ssm"
+              ? "Leads by ASM"
+              : data.role === "rsm"
+                ? "Leads by SSM"
+                : "RSM Lead Performance"
+        }
+        users={primaryUsers}
+        leads={data.scopedLeads}
+        deals={data.scopedDeals}
+        tasks={data.scopedTasks}
+        money={data.formatMoney}
+      />
+      <PerformanceTable
+        title={primaryTitle}
+        users={primaryUsers}
+        deals={data.scopedDeals}
+        tasks={data.scopedTasks}
+        money={data.formatMoney}
+      />
+      {["asm", "ssm", "rsm", "head_of_sales"].includes(data.role) && (
+        <OpportunityHealth deals={data.scopedDeals} tasks={data.scopedTasks} />
+      )}
+      {data.role === "ssm" && (
+        <LeadPerformanceTable
+          title="Leads by BDO"
+          users={data.allowedUsers.filter((user) => user.role === "bdo")}
+          leads={data.scopedLeads}
+          deals={data.scopedDeals}
+          tasks={data.scopedTasks}
+          money={data.formatMoney}
+        />
+      )}
+      {data.role === "rsm" && (
+        <LeadPerformanceTable
+          title="Leads by ASM"
+          users={data.allowedUsers.filter((user) => user.role === "asm")}
+          leads={data.scopedLeads}
+          deals={data.scopedDeals}
+          tasks={data.scopedTasks}
+          money={data.formatMoney}
+        />
+      )}
+      {data.role === "head_of_sales" && (
+        <RegionPerformance
+          regions={data.regions}
+          users={data.allUsers}
+          deals={data.scopedDeals}
+          money={data.formatMoney}
+        />
+      )}
+    </>
+  );
+};
+const BdoWorkspace = ({ data }: { data: Common }) => {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const openTasks = data.scopedTasks.filter((task) => !task.done_date);
+  const today = openTasks.filter(
+    (task) => new Date(task.due_date).toDateString() === now.toDateString(),
+  );
+  const due = openTasks.filter((task) => new Date(task.due_date) <= now);
+  const recent = [...data.scopedLeads]
+    .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
+    .slice(0, 5);
+  const ready = data.scopedLeads.filter(
+    (lead) => lead.status === "qualified" && !lead.converted_at,
+  );
+  return (
+    <>
+      <KpiGrid
+        items={[
+          ["My Leads", data.scopedLeads.length],
+          [
+            "New Leads",
+            data.scopedLeads.filter((lead) => lead.status === "new").length,
+          ],
+          [
+            "Contacted Leads",
+            data.scopedLeads.filter((lead) => lead.status === "contacted")
+              .length,
+          ],
+          ["Qualified Leads", ready.length],
+          ["Follow-ups Due", due.length],
+          [
+            "Converted This Month",
+            data.scopedLeads.filter(
+              (lead) =>
+                lead.status === "converted" &&
+                lead.converted_at &&
+                new Date(lead.converted_at) >= monthStart,
+            ).length,
+          ],
+          ["My Open Opportunities", data.kpis.open],
+          ["My Pipeline Value", data.formatMoney(data.kpis.pipeline)],
+          ["My Pending Tasks", data.kpis.pending],
+          ["My Won Value", data.formatMoney(data.kpis.wonValue)],
+        ]}
+      />
+      <WorkQueue
+        title="Today's Follow-ups"
+        empty="No follow-ups due today."
+        rows={today.map((task) => ({
+          id: task.id,
+          title: task.text,
+          detail: new Date(task.due_date).toLocaleString(),
+        }))}
+      />
+      <WorkQueue
+        title="Recent Leads"
+        empty="No assigned leads yet."
+        rows={recent.map((lead) => ({
+          id: lead.id,
+          title: `${lead.first_name} ${lead.last_name ?? ""}`.trim(),
+          detail: `${lead.company_name ?? "No company"} · ${lead.status}`,
+        }))}
+      />
+      <WorkQueue
+        title="Qualified Leads Ready to Convert"
+        empty="No qualified leads awaiting conversion."
+        rows={ready.map((lead) => ({
+          id: lead.id,
+          title: `${lead.first_name} ${lead.last_name ?? ""}`.trim(),
+          detail: lead.company_name ?? "No company",
+        }))}
+      />
+      <WorkQueue
+        title="Overdue Tasks"
+        empty="No overdue tasks."
+        rows={openTasks
+          .filter((task) => new Date(task.due_date) < now)
+          .map((task) => ({
+            id: task.id,
+            title: task.text,
+            detail: new Date(task.due_date).toLocaleString(),
+          }))}
+      />
+    </>
+  );
+};
+const WorkQueue = ({
+  title,
+  empty,
+  rows,
+}: {
+  title: string;
+  empty: string;
+  rows: Array<{ id: unknown; title: string; detail: string }>;
+}) => (
+  <Card className="overflow-hidden border-cyan-200/80 bg-gradient-to-br from-cyan-50/80 via-white to-emerald-50/80">
+    <CardHeader className="border-b border-border/80 bg-white/40">
+      <CardTitle>{title}</CardTitle>
+    </CardHeader>
+    <CardContent>
+      {rows.length ? (
+        <div className="space-y-3 pt-2">
+          {rows.map((row) => (
+            <div
+              key={String(row.id)}
+              className="rounded-[1rem] border border-cyan-200/80 bg-white/85 p-3 shadow-[0_8px_18px_rgba(14,165,233,0.06)]"
+            >
+              <div className="mb-2 h-1.5 w-20 rounded-full bg-gradient-to-r from-cyan-500 via-sky-500 to-emerald-500" />
+              <p className="font-medium text-foreground">{row.title}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{row.detail}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <Empty text={empty} />
+      )}
+    </CardContent>
+  </Card>
+);
+const KpiGrid = ({ items }: { items: Array<[string, string | number]> }) => (
+  <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+    {items.map(([label, value], index) => (
+      <div key={label} className="crm-kpi-card">
+        <div
+          className={`crm-kpi-accent ${index % 6 === 0 ? "bg-primary" : index % 6 === 1 ? "bg-cyan-500" : index % 6 === 2 ? "bg-emerald-500" : index % 6 === 3 ? "bg-violet-500" : index % 6 === 4 ? "bg-amber-500" : "bg-sky-500"}`}
+        />
+        <CardContent className="relative p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            {label}
+          </p>
+          <p className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-foreground">
+            {value}
+          </p>
+        </CardContent>
+      </div>
+    ))}
+  </div>
+);
+const PipelineSummary = ({
+  deals,
+  money,
+}: {
+  deals: Deal[];
+  money: (value: number) => string;
+}) => {
+  const stages = useMemo(
+    () => Array.from(new Set(deals.map((deal) => deal.stage))),
+    [deals],
+  );
+  return (
+    <Card className="overflow-hidden border-emerald-200/80 bg-gradient-to-br from-emerald-50/80 via-white to-cyan-50/80">
+      <CardHeader className="border-b border-border/80 bg-white/40">
+        <CardTitle>Pipeline stage health</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {stages.length ? (
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+            {stages.map((stage) => {
+              const list = deals.filter((deal) => deal.stage === stage);
+              return (
+                <div
+                  key={stage}
+                  className="rounded-[1.1rem] border border-emerald-200/70 bg-white/80 p-3 shadow-[0_8px_18px_rgba(16,185,129,0.08)]"
+                >
+                  <p className="text-sm font-medium text-foreground">{stage}</p>
+                  <p className="mt-2 text-lg font-semibold tracking-[-0.03em] text-foreground">
+                    {list.length}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {money(
+                      list.reduce((sum, deal) => sum + (deal.amount ?? 0), 0),
+                    )}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <Empty text="No sales data available for this period." />
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+type ChartRow = { label: string; [key: string]: string | number };
+const Chart = ({
+  data,
+  keys,
+  colors,
+  valueFormat,
+  height,
+  layout = "horizontal",
+}: {
+  data: ChartRow[];
+  keys: string[];
+  colors: string[];
+  valueFormat?: (value: number) => string;
+  height?: number;
+  layout?: "horizontal" | "vertical";
+}) => {
+  if (!data.length) return <Empty text="No data available for this chart." />;
+  const leftMargin =
+    layout === "vertical"
+      ? 56
+      : Math.min(
+          220,
+          Math.max(
+            124,
+            ...data.map((row) => String(row.label).length * 7 + 24),
+          ),
+        );
+  const chartHeight =
+    layout === "vertical"
+      ? (height ?? 300)
+      : Math.max(height ?? 300, data.length * 52);
+  const chartWidth =
+    layout === "vertical" ? Math.max(360, data.length * 88) : undefined;
+  const compactTick = (value: string | number) =>
+    new Intl.NumberFormat(undefined, {
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(Number(value));
+
+  return (
+    <div className="w-full overflow-x-auto rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50/80 to-indigo-50/50 p-3 shadow-inner dark:border-slate-700/70 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/30">
+      <div className="max-h-[440px] w-full overflow-y-auto">
+        <div
+          className="w-full"
+          style={{ height: chartHeight, minWidth: chartWidth }}
+        >
+          <ResponsiveBar
+            data={data}
+            keys={keys}
+            indexBy="label"
+            layout={layout}
+            margin={{
+              top: 16,
+              right: 20,
+              bottom: layout === "vertical" ? 78 : keys.length > 1 ? 68 : 44,
+              left: leftMargin,
+            }}
+            padding={0.42}
+            innerPadding={6}
+            valueScale={{ type: "linear" }}
+            indexScale={{ type: "band", round: true }}
+            colors={colors}
+            borderRadius={layout === "vertical" ? 14 : 999}
+            borderColor={{ from: "color", modifiers: [["darker", 0.25]] }}
+            enableGridX={layout === "horizontal"}
+            enableGridY={layout === "vertical"}
+            enableLabel={false}
+            axisTop={null}
+            axisRight={null}
+            axisBottom={{
+              tickSize: 0,
+              tickPadding: 10,
+              tickValues: layout === "horizontal" ? 5 : undefined,
+              tickRotation: layout === "vertical" ? -28 : 0,
+              format: layout === "horizontal" ? compactTick : undefined,
+            }}
+            axisLeft={{
+              tickSize: 0,
+              tickPadding: 10,
+              tickValues: layout === "vertical" ? 5 : undefined,
+              format: layout === "vertical" ? compactTick : undefined,
+            }}
+            valueFormat={
+              valueFormat ? (value) => valueFormat(Number(value)) : undefined
+            }
+            theme={{
+              text: { fill: "hsl(var(--muted-foreground))", fontSize: 11 },
+              axis: {
+                ticks: {
+                  text: { fill: "hsl(var(--muted-foreground))", fontSize: 11 },
+                },
+              },
+              grid: {
+                line: {
+                  stroke: "hsl(var(--border))",
+                  strokeDasharray: "4 5",
+                  strokeOpacity: 0.65,
+                },
+              },
+              tooltip: {
+                container: {
+                  background: "hsl(var(--popover))",
+                  color: "hsl(var(--popover-foreground))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "12px",
+                  boxShadow: "0 12px 32px rgba(15, 23, 42, 0.16)",
+                  padding: "10px 14px",
+                },
+              },
+            }}
+            tooltip={({ id, value, indexValue, color }) => (
+              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-xl dark:border-slate-700 dark:bg-slate-900">
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: color }}
+                />
+                <span className="font-medium">{indexValue}</span>
+                <span className="text-muted-foreground">{id}</span>
+                <strong className="ml-1">
+                  {valueFormat
+                    ? valueFormat(Number(value))
+                    : Number(value).toLocaleString()}
+                </strong>
+              </div>
+            )}
+            legends={
+              keys.length > 1
+                ? [
+                    {
+                      dataFrom: "keys",
+                      anchor: "bottom",
+                      direction: "row",
+                      justify: false,
+                      translateY: 56,
+                      itemsSpacing: 16,
+                      itemWidth: 120,
+                      itemHeight: 18,
+                      symbolSize: 10,
+                      symbolShape: "circle",
+                    },
+                  ]
+                : []
+            }
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+const UsersByRole = ({ users }: { users: Sale[] }) => {
+  const data = (
+    ["super_admin", "head_of_sales", "rsm", "ssm", "asm", "bdo"] as CrmRole[]
+  ).map((role) => ({
+    label: ROLE_LABELS[role],
+    Users: users.filter((user) => user.role === role).length,
+  }));
+  return (
+    <Card className="overflow-hidden border-sky-200/80 bg-gradient-to-br from-sky-50/90 via-white to-indigo-100/70 shadow-[0_18px_45px_-28px_rgba(79,70,229,0.5)] dark:border-sky-900/70 dark:from-slate-950 dark:via-slate-950 dark:to-indigo-950/40">
+      <CardHeader className="border-b border-sky-200/70 bg-white/55 dark:border-slate-800 dark:bg-slate-900/50">
+        <CardTitle className="flex items-center gap-3">
+          <span className="h-7 w-1.5 rounded-full bg-gradient-to-b from-sky-500 to-indigo-600" />
+          Users by role
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-5">
+        <Chart
+          data={data}
+          keys={["Users"]}
+          colors={["#6366f1"]}
+          layout="vertical"
+        />
+      </CardContent>
+    </Card>
+  );
+};
+const RegionPerformance = ({
+  regions,
+  users,
+  deals,
+  money,
+}: {
+  regions: Region[];
+  users: Sale[];
+  deals: Deal[];
+  money: (value: number) => string;
+}) => {
+  const data = regions.map((region) => {
+    const ids = new Set(
+      users
+        .filter((user) => String(user.region_id) === String(region.id))
+        .map((user) => String(user.id)),
+    );
+    const list = deals.filter((deal) => ids.has(String(deal.sales_id)));
+    const open = list.filter(
+      (deal) => !["won", "lost"].includes(deal.stage.toLowerCase()),
+    );
+    return {
+      label: region.name,
+      Pipeline: open.reduce((sum, deal) => sum + (deal.amount ?? 0), 0),
+      "Won value": list
+        .filter((deal) => deal.stage.toLowerCase() === "won")
+        .reduce((sum, deal) => sum + (deal.amount ?? 0), 0),
+      Users: ids.size,
+      "Open opportunities": open.length,
+    };
+  });
+  return (
+    <Card className="overflow-hidden border-amber-200/80 bg-gradient-to-br from-amber-50/90 via-white to-orange-100/60 shadow-[0_18px_45px_-28px_rgba(234,88,12,0.45)] dark:border-amber-900/70 dark:from-slate-950 dark:via-slate-950 dark:to-orange-950/30">
+      <CardHeader className="border-b border-amber-200/70 bg-white/55 dark:border-slate-800 dark:bg-slate-900/50">
+        <CardTitle className="flex items-center gap-3">
+          <span className="h-7 w-1.5 rounded-full bg-gradient-to-b from-amber-400 to-orange-600" />
+          Region performance
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-5 p-5 xl:grid-cols-2">
+        <div className="rounded-2xl border border-indigo-100/80 bg-white/50 p-4 dark:border-slate-800 dark:bg-slate-900/40">
+          <h3 className="mb-4 text-sm font-semibold tracking-wide text-foreground">
+            Pipeline and won value
+          </h3>{" "}
+          <Chart
+            data={data}
+            keys={["Pipeline", "Won value"]}
+            colors={["#6366f1", "#10b981"]}
+            valueFormat={money}
+            layout="vertical"
+          />
+        </div>
+        <div className="rounded-2xl border border-cyan-100/80 bg-white/50 p-4 dark:border-slate-800 dark:bg-slate-900/40">
+          <h3 className="mb-4 text-sm font-semibold tracking-wide text-foreground">
+            Users and open opportunities
+          </h3>
+          <Chart
+            data={data}
+            keys={["Users", "Open opportunities"]}
+            colors={["#0ea5e9", "#f59e0b"]}
+            layout="vertical"
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+const PerformanceTable = ({
+  title,
+  users,
+  deals,
+  tasks,
+  money,
+}: {
+  title: string;
+  users: Sale[];
+  deals: Deal[];
+  tasks: Task[];
+  money: (value: number) => string;
+}) => {
+  const data = users.map((user) => {
+    const userDeals = deals.filter(
+      (deal) => String(deal.sales_id) === String(user.id),
+    );
+    return {
+      label: `${user.first_name} ${user.last_name}`.trim(),
+      Pipeline: userDeals
+        .filter((deal) => !["won", "lost"].includes(deal.stage.toLowerCase()))
+        .reduce((sum, deal) => sum + (deal.amount ?? 0), 0),
+      "Won value": userDeals
+        .filter((deal) => deal.stage.toLowerCase() === "won")
+        .reduce((sum, deal) => sum + (deal.amount ?? 0), 0),
+      "Open tasks": tasks.filter(
+        (task) => String(task.sales_id) === String(user.id) && !task.done_date,
+      ).length,
+    };
+  });
+  return (
+    <Card className="overflow-hidden border-violet-200/80 bg-gradient-to-br from-violet-50/90 via-white to-fuchsia-100/60 shadow-[0_18px_45px_-28px_rgba(124,58,237,0.5)] dark:border-violet-900/70 dark:from-slate-950 dark:via-slate-950 dark:to-violet-950/35">
+      <CardHeader className="border-b border-violet-200/70 bg-white/55 dark:border-slate-800 dark:bg-slate-900/50">
+        <CardTitle className="flex items-center gap-3">
+          <span className="h-7 w-1.5 rounded-full bg-gradient-to-b from-violet-500 to-fuchsia-600" />
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-5 p-5 xl:grid-cols-2">
+        <div className="rounded-2xl border border-violet-100/80 bg-white/50 p-4 dark:border-slate-800 dark:bg-slate-900/40">
+          <h3 className="mb-4 text-sm font-semibold tracking-wide text-foreground">
+            Pipeline and won value
+          </h3>
+          <Chart
+            data={data}
+            keys={["Pipeline", "Won value"]}
+            colors={["#6366f1", "#10b981"]}
+            valueFormat={money}
+            layout="vertical"
+          />
+        </div>
+        <div className="rounded-2xl border border-amber-100/80 bg-white/50 p-4 dark:border-slate-800 dark:bg-slate-900/40">
+          <h3 className="mb-4 text-sm font-semibold tracking-wide text-foreground">
+            Open tasks
+          </h3>
+          <Chart
+            data={data}
+            keys={["Open tasks"]}
+            colors={["#f59e0b"]}
+            layout="vertical"
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+const Empty = ({ text }: { text: string }) => (
+  <p className="py-4 text-sm text-muted-foreground">{text}</p>
+);
+const DashboardState = ({ text }: { text: string }) => (
+  <section className="mb-6">
+    <Card className="overflow-hidden border-slate-200/80 bg-gradient-to-br from-slate-50 via-white to-sky-50">
+      <CardContent className="p-6 text-muted-foreground">{text}</CardContent>
+    </Card>
+  </section>
+);
