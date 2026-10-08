@@ -157,6 +157,7 @@ export type Contact = {
   phone_jsonb: PhoneNumberAndType[];
   nb_tasks?: number;
   company_name?: string;
+  source_lead_id?: Identifier | null;
 } & Pick<RaRecord, "id">;
 
 export type ContactNote = {

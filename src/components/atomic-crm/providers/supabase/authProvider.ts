@@ -114,6 +114,33 @@ function clearCache() {
   storage?.removeItem(CURRENT_SALE_CACHE_KEY);
 }
 
+function isHashRoute(route: string) {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  const hashPath = window.location.hash.replace(/^#/, "");
+  return hashPath === route || hashPath.startsWith(`${route}?`);
+}
+
+function isPublicRoute() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  const pathname = window.location.pathname;
+  return (
+    pathname === "/login" ||
+    pathname === "/sign-up" ||
+    pathname === "/set-password" ||
+    pathname === "/forgot-password" ||
+    pathname === "/oauth/consent" ||
+    isHashRoute("/login") ||
+    isHashRoute("/sign-up") ||
+    isHashRoute("/set-password") ||
+    isHashRoute("/forgot-password") ||
+    isHashRoute("/oauth/consent")
+  );
+}
+
 export const getAuthProvider = (): AuthProvider => {
   const baseAuthProvider = getBaseAuthProvider();
   return {
@@ -143,18 +170,8 @@ export const getAuthProvider = (): AuthProvider => {
       return baseAuthProvider.logout(params);
     },
     checkAuth: async (params) => {
-      // Users are on the set-password page, nothing to do
-      if (
-        window.location.pathname === "/set-password" ||
-        window.location.hash.includes("#/set-password")
-      ) {
-        return;
-      }
-      // Users are on the forgot-password page, nothing to do
-      if (
-        window.location.pathname === "/forgot-password" ||
-        window.location.hash.includes("#/forgot-password")
-      ) {
+      // Public auth pages may be reached with hash-based URLs after redirects.
+      if (isPublicRoute()) {
         return;
       }
       const isInitialized = await getIsInitialized();

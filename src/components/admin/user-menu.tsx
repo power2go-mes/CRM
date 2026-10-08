@@ -17,6 +17,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  CRM_ROLES,
+  ROLE_LABELS,
+} from "@/components/atomic-crm/providers/commons/roles";
 
 export type UserMenuProps = {
   children?: React.ReactNode;
@@ -35,6 +39,7 @@ export function UserMenu({ children }: UserMenuProps) {
   const authProvider = useAuthProvider();
   const { data: identity } = useGetIdentity();
   const logout = useLogout();
+  const role = CRM_ROLES.find((role) => role === identity?.role);
 
   const [open, setOpen] = useState(false);
 
@@ -68,6 +73,11 @@ export function UserMenu({ children }: UserMenuProps) {
               <p className="text-sm font-medium leading-none">
                 {identity?.fullName}
               </p>
+              {role && (
+                <p className="text-xs text-muted-foreground">
+                  {ROLE_LABELS[role]}
+                </p>
+              )}
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />

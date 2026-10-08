@@ -8,12 +8,7 @@ import {
   User,
   Users,
 } from "lucide-react";
-import {
-  CanAccess,
-  useGetIdentity,
-  useLogout,
-  useTranslate,
-} from "ra-core";
+import { CanAccess, useGetIdentity, useLogout, useTranslate } from "ra-core";
 import { Link } from "react-router";
 
 import { Button } from "@/components/ui/button";
@@ -28,22 +23,35 @@ import {
 
 import { ChangelogPage } from "../misc/ChangelogPage";
 import { ImportPage } from "../misc/ImportPage";
+import { CRM_ROLES, ROLE_LABELS } from "../providers/commons/roles";
 
 export const MobileUserMenu = () => {
   const translate = useTranslate();
   const { data: identity } = useGetIdentity();
   const logout = useLogout();
+  const role = CRM_ROLES.find((role) => role === identity?.role);
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-xl" aria-label="Open menu">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-xl"
+          aria-label="Open menu"
+        >
           <Menu />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-60 rounded-2xl border-border/80 p-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.14)]" align="end">
+      <DropdownMenuContent
+        className="w-60 rounded-2xl border-border/80 p-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.14)]"
+        align="end"
+      >
         <DropdownMenuLabel className="px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          {identity?.fullName}
+          <div className="flex flex-col gap-1">
+            <span>{identity?.fullName}</span>
+            {role && <span>{ROLE_LABELS[role]}</span>}
+          </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <MobileMenuLink to="/profile" icon={<User />}>
@@ -88,7 +96,10 @@ const MobileMenuLink = ({
   children: React.ReactNode;
 }) => (
   <DropdownMenuItem asChild>
-    <Link to={to} className="flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm">
+    <Link
+      to={to}
+      className="flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm"
+    >
       {icon}
       {children}
     </Link>

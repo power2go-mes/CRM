@@ -5,30 +5,267 @@ import { TextInput } from "@/components/admin/text-input";
 import { SelectInput } from "@/components/admin/select-input";
 import { CancelButton } from "@/components/admin/cancel-button";
 import { SaveButton } from "@/components/admin/form";
-import { CreateBase, EditBase, Form, required, useGetIdentity, useGetList } from "ra-core";
-import type { Lead, Region } from "../types";
+import {
+  CreateBase,
+  EditBase,
+  Form,
+  required,
+  useGetIdentity,
+  useGetList,
+  useRecordContext,
+} from "ra-core";
+import type { Contact, Lead, Region } from "../types";
 import { List } from "@/components/admin/list";
 import { TopToolbar } from "../layout/TopToolbar";
 import type { CrmRole } from "../providers/commons/roles";
 import { canCreateLead, canEditLead } from "./permissions";
 import { LeadShow } from "./LeadShow";
 
-const statuses = ["new", "contacted", "qualified", "unqualified", "converted"].map((id) => ({ id, name: id[0].toUpperCase() + id.slice(1) }));
-const unqualifiedReasons = ["Not Interested", "No Budget", "Invalid Contact", "Wrong Requirement", "Duplicate", "Competitor Selected", "Follow Up Later", "Other"].map((id) => ({ id, name: id }));
+const statuses = [
+  "new",
+  "contacted",
+  "qualified",
+  "unqualified",
+  "converted",
+].map((id) => ({ id, name: id[0].toUpperCase() + id.slice(1) }));
+const unqualifiedReasons = [
+  "Not Interested",
+  "No Budget",
+  "Invalid Contact",
+  "Wrong Requirement",
+  "Duplicate",
+  "Competitor Selected",
+  "Follow Up Later",
+  "Other",
+].map((id) => ({ id, name: id }));
 const LeadInputs = () => {
   const { identity } = useGetIdentity();
-  const role = (identity as { role?: CrmRole; user_id?: string } | undefined)?.role;
+  const role = (identity as { role?: CrmRole; user_id?: string } | undefined)
+    ?.role;
   const userId = (identity as { user_id?: string } | undefined)?.user_id;
-  const { data: users = [] } = useGetList<{ id: string | number; user_id: string; first_name: string; last_name: string; role: CrmRole; disabled?: boolean; reports_to_user_id?: string }>("sales", { pagination: { page: 1, perPage: 200 }, sort: { field: "first_name", order: "ASC" }, filter: {} });
-  const { data: regions = [] } = useGetList<Region>("regions", { pagination: { page: 1, perPage: 200 }, sort: { field: "name", order: "ASC" }, filter: { is_active: true } }, { enabled: role === "super_admin" || role === "head_of_sales" });
-  const directBdos = users.filter((user) => user.role === "bdo" && !user.disabled && user.reports_to_user_id === userId);
+  const { data: users = [] } = useGetList<{
+    id: string | number;
+    user_id: string;
+    first_name: string;
+    last_name: string;
+    role: CrmRole;
+    disabled?: boolean;
+    reports_to_user_id?: string;
+  }>("sales", {
+    pagination: { page: 1, perPage: 200 },
+    sort: { field: "first_name", order: "ASC" },
+    filter: {},
+  });
+  const { data: regions = [] } = useGetList<Region>(
+    "regions",
+    {
+      pagination: { page: 1, perPage: 200 },
+      sort: { field: "name", order: "ASC" },
+      filter: { is_active: true },
+    },
+    { enabled: role === "super_admin" || role === "head_of_sales" },
+  );
+  const directBdos = users.filter(
+    (user) =>
+      user.role === "bdo" &&
+      !user.disabled &&
+      user.reports_to_user_id === userId,
+  );
   const canChooseRegion = role === "super_admin" || role === "head_of_sales";
-  return <div className="space-y-4 pt-4"><TextInput source="first_name" label="First Name" validate={required()} helperText={false} /><TextInput source="last_name" label="Last Name" helperText={false} /><TextInput source="company_name" label="Company" helperText={false} /><TextInput source="email" helperText={false} /><TextInput source="phone" helperText={false} /><TextInput source="source" helperText={false} />{canChooseRegion ? <SelectInput source="region_id" label="Region" choices={regions.filter((region) => region.is_active).map((region) => ({ id: region.id, name: `${region.name} (${region.code})` }))} validate={required()} helperText="Choose the region this lead belongs to." /> : null}{role === "asm" ? <SelectInput source="assigned_bdo_id" label="Assign to BDO" choices={directBdos.map((user) => ({ id: user.id, name: `${user.first_name} ${user.last_name}` }))} helperText="The Lead owner remains the creator." /> : null}<SelectInput source="status" choices={statuses} helperText={false} /><SelectInput source="unqualified_reason" label="Unqualified reason" choices={unqualifiedReasons} helperText="Required when marking a lead unqualified." /><TextInput source="notes" multiline helperText={false} /></div>;
+  return (
+    <div className="space-y-4 pt-4">
+      <TextInput
+        source="first_name"
+        label="First Name"
+        validate={required()}
+        helperText={false}
+      />
+      <TextInput source="last_name" label="Last Name" helperText={false} />
+      <TextInput source="company_name" label="Company" helperText={false} />
+      <TextInput source="email" helperText={false} />
+      <TextInput source="phone" helperText={false} />
+      <TextInput source="source" helperText={false} />
+      {canChooseRegion ? (
+        <SelectInput
+          source="region_id"
+          label="Region"
+          choices={regions
+            .filter((region) => region.is_active)
+            .map((region) => ({
+              id: region.id,
+              name: `${region.name} (${region.code})`,
+            }))}
+          validate={required()}
+          helperText="Choose the region this lead belongs to."
+        />
+      ) : null}
+      {role === "asm" ? (
+        <SelectInput
+          source="assigned_bdo_id"
+          label="Assign to BDO"
+          choices={directBdos.map((user) => ({
+            id: user.id,
+            name: `${user.first_name} ${user.last_name}`,
+          }))}
+          helperText="The Lead owner remains the creator."
+        />
+      ) : null}
+      <SelectInput source="status" choices={statuses} helperText={false} />
+      <SelectInput
+        source="unqualified_reason"
+        label="Unqualified reason"
+        choices={unqualifiedReasons}
+        helperText="Required when marking a lead unqualified."
+      />
+      <TextInput source="notes" multiline helperText={false} />
+    </div>
+  );
 };
-const useLeadRole = () => (useGetIdentity().identity as { role?: CrmRole } | undefined)?.role;
-const LeadListActions = () => { const role = useLeadRole(); return <TopToolbar>{canCreateLead(role) ? <CreateButton label="Add Lead" /> : null}</TopToolbar>; };
-const LeadList = () => { const role = useLeadRole(); const filters = role === "bdo" ? [<SelectInput key="status" source="status" label="My Lead Status" choices={statuses} emptyText="All My Leads" helperText={false} />] : undefined; const description = role === "bdo" ? "My assigned Leads. Select a Lead to update progress, create follow-ups, add notes, and work qualified Leads." : role === "asm" ? "Create and assign Leads to your BDO team, and monitor Lead progress." : role === "ssm" ? "Manage Leads across your sales hierarchy and monitor ASM and BDO progress." : role === "rsm" ? "Manage and monitor Leads across your Region." : role === "head_of_sales" ? "Monitor Leads across all Regions." : "Global Lead monitoring."; return <List title="Leads" actions={<LeadListActions />} filters={filters}><p className="mb-3 text-sm text-muted-foreground">{description} Rows with a pointer cursor open Lead details.</p><DataTable<Lead> rowClassName={() => "hover:bg-muted/50 focus-within:bg-muted/50"} rowClick={role === "bdo" ? "show" : canEditLead(role) ? "edit" : "show"} bulkActionButtons={false}><DataTable.Col source="first_name" label="Lead — select to open" /><DataTable.Col source="company_name" label="Company" /><DataTable.Col source="email" /><DataTable.Col source="phone" /><DataTable.Col source="source" /><DataTable.Col source="status" /><DataTable.Col source="owner_name" label="Owner" /><DataTable.Col source="assigned_bdo_name" label="Assigned BDO" /><DataTable.Col source="region_name" label="Region" /><DataTable.Col source="converted_at" label="Conversion Status" /></DataTable></List>; };
-const LeadDenied = () => <Card className="mx-auto mt-4 max-w-xl"><CardContent className="p-6 text-destructive">You do not have permission to perform this action.</CardContent></Card>;
-const LeadCreate = () => { const { identity } = useGetIdentity(); const role = (identity as { role?: CrmRole } | undefined)?.role; if (!canCreateLead(role)) return <LeadDenied />; return <CreateBase redirect="list"><div className="mx-auto mt-4 max-w-xl max-h-[calc(100dvh-7rem)] overflow-y-auto pb-20 md:max-h-none md:overflow-visible md:pb-0"><Form defaultValues={{ status: "new" }}><Card><CardContent><LeadInputs /><div className="flex justify-end gap-2 pt-4"><CancelButton /><SaveButton label="Create Lead" /></div></CardContent></Card></Form></div></CreateBase>; };
-const LeadEdit = () => { const role = useLeadRole(); if (!canEditLead(role)) return <LeadDenied />; return <EditBase redirect="list"><div className="mx-auto mt-4 max-w-xl"><Form><Card><CardContent><LeadInputs /><div className="flex justify-end gap-2 pt-4"><CancelButton /><SaveButton label="Save Lead" /></div></CardContent></Card></Form></div></EditBase>; };
-export default { list: LeadList, create: LeadCreate, edit: LeadEdit, show: LeadShow, recordRepresentation: (lead: Lead) => `${lead.first_name} ${lead.last_name ?? ""}`.trim() };
+const useLeadRole = () =>
+  (useGetIdentity().identity as { role?: CrmRole } | undefined)?.role;
+const LeadListActions = () => {
+  const role = useLeadRole();
+  return (
+    <TopToolbar>
+      {canCreateLead(role) ? <CreateButton label="Add Lead" /> : null}
+    </TopToolbar>
+  );
+};
+const LeadContactName = () => {
+  const lead = useRecordContext<Lead>();
+  const { data: contacts = [] } = useGetList<Contact>(
+    "contacts",
+    {
+      pagination: { page: 1, perPage: 1000 },
+      sort: { field: "id", order: "ASC" },
+      filter: {},
+    },
+    { enabled: Boolean(lead?.email) },
+  );
+
+  if (!lead) return null;
+  const normalizedEmail = lead.email?.trim().toLowerCase();
+  const contact = normalizedEmail
+    ? contacts.find((item) =>
+        item.email_jsonb?.some(
+          (email) => email.email.trim().toLowerCase() === normalizedEmail,
+        ),
+      )
+    : undefined;
+  const name = contact
+    ? `${contact.first_name} ${contact.last_name}`.trim()
+    : `${lead.first_name} ${lead.last_name ?? ""}`.trim();
+
+  return name;
+};
+const LeadList = () => {
+  const role = useLeadRole();
+  const filters =
+    role === "bdo"
+      ? [
+          <SelectInput
+            key="status"
+            source="status"
+            label="My Lead Status"
+            choices={statuses}
+            emptyText="All My Leads"
+            helperText={false}
+          />,
+        ]
+      : undefined;
+  const description =
+    role === "bdo"
+      ? "My assigned Leads. Select a Lead to update progress, create follow-ups, add notes, and work qualified Leads."
+      : role === "asm"
+        ? "Create and assign Leads to your BDO team, and monitor Lead progress."
+        : role === "ssm"
+          ? "Manage Leads across your sales hierarchy and monitor ASM and BDO progress."
+          : role === "rsm"
+            ? "Manage and monitor Leads across your Region."
+            : role === "head_of_sales"
+              ? "Monitor Leads across all Regions."
+              : "Global Lead monitoring.";
+  return (
+    <List title="Leads" actions={<LeadListActions />} filters={filters}>
+      <p className="mb-3 text-sm text-muted-foreground">
+        {description} Rows with a pointer cursor open Lead details.
+      </p>
+      <DataTable<Lead>
+        rowClassName={() => "hover:bg-muted/50 focus-within:bg-muted/50"}
+        rowClick={role === "bdo" ? "show" : canEditLead(role) ? "edit" : "show"}
+        bulkActionButtons={false}
+      >
+        <DataTable.Col label="Lead — select to open">
+          <LeadContactName />
+        </DataTable.Col>
+        <DataTable.Col source="company_name" label="Company" />
+        <DataTable.Col source="email" />
+        <DataTable.Col source="phone" />
+        <DataTable.Col source="source" />
+        <DataTable.Col source="status" />
+        <DataTable.Col source="owner_name" label="Owner (ASM/SSM)" />
+        <DataTable.Col source="assigned_bdo_name" label="Assigned BDO" />
+        <DataTable.Col source="region_name" label="Region" />
+        <DataTable.Col source="converted_at" label="Conversion Status" />
+      </DataTable>
+    </List>
+  );
+};
+const LeadDenied = () => (
+  <Card className="mx-auto mt-4 max-w-xl">
+    <CardContent className="p-6 text-destructive">
+      You do not have permission to perform this action.
+    </CardContent>
+  </Card>
+);
+const LeadCreate = () => {
+  const { identity } = useGetIdentity();
+  const role = (identity as { role?: CrmRole } | undefined)?.role;
+  if (!canCreateLead(role)) return <LeadDenied />;
+  return (
+    <CreateBase redirect="list">
+      <div className="mx-auto mt-4 max-w-xl max-h-[calc(100dvh-7rem)] overflow-y-auto pb-20 md:max-h-none md:overflow-visible md:pb-0">
+        <Form defaultValues={{ status: "new" }}>
+          <Card>
+            <CardContent>
+              <LeadInputs />
+              <div className="flex justify-end gap-2 pt-4">
+                <CancelButton />
+                <SaveButton label="Create Lead" />
+              </div>
+            </CardContent>
+          </Card>
+        </Form>
+      </div>
+    </CreateBase>
+  );
+};
+const LeadEdit = () => {
+  const role = useLeadRole();
+  if (!canEditLead(role)) return <LeadDenied />;
+  return (
+    <EditBase redirect="list">
+      <div className="mx-auto mt-4 max-w-xl">
+        <Form>
+          <Card>
+            <CardContent>
+              <LeadInputs />
+              <div className="flex justify-end gap-2 pt-4">
+                <CancelButton />
+                <SaveButton label="Save Lead" />
+              </div>
+            </CardContent>
+          </Card>
+        </Form>
+      </div>
+    </EditBase>
+  );
+};
+export default {
+  list: LeadList,
+  create: LeadCreate,
+  edit: LeadEdit,
+  show: LeadShow,
+  recordRepresentation: (lead: Lead) =>
+    `${lead.first_name} ${lead.last_name ?? ""}`.trim(),
+};

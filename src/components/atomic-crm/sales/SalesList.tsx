@@ -1,4 +1,4 @@
-import { useRecordContext } from "ra-core";
+import { useGetList, useRecordContext } from "ra-core";
 import { CreateButton } from "@/components/admin/create-button";
 import { DataTable } from "@/components/admin/data-table";
 import { ExportButton } from "@/components/admin/export-button";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 
 import { TopToolbar } from "../layout/TopToolbar";
 import { ROLE_LABELS, type CrmRole } from "../providers/commons/roles";
+import type { Region, Sale } from "../types";
 
 const SalesListActions = () => (
   <TopToolbar>
@@ -17,6 +18,21 @@ const SalesListActions = () => (
 );
 
 const filters = [<SearchInput source="q" alwaysOn />];
+
+const RegionField = () => {
+  const record = useRecordContext<Sale>();
+  const { data: regions = [] } = useGetList<Region>("regions", {
+    pagination: { page: 1, perPage: 200 },
+    sort: { field: "name", order: "ASC" },
+    filter: {},
+  });
+
+  if (!record?.region_id) return "All regions";
+  return (
+    regions.find((region) => String(region.id) === String(record.region_id))
+      ?.name ?? `Region #${record.region_id}`
+  );
+};
 
 const OptionsField = (_props: { label?: string | boolean }) => {
   const record = useRecordContext();
@@ -43,6 +59,29 @@ const OptionsField = (_props: { label?: string | boolean }) => {
   );
 };
 
+const ReportsToField = () => {
+  const record = useRecordContext<Sale>();
+  const { data: users = [] } = useGetList<Sale>("sales", {
+    pagination: { page: 1, perPage: 200 },
+    sort: { field: "first_name", order: "ASC" },
+    filter: {},
+  });
+
+  if (!record?.reports_to_user_id) return "—";
+
+  const manager = users.find(
+    (user) => String(user.user_id) === String(record.reports_to_user_id),
+  );
+
+  if (!manager) return record.reports_to_user_id;
+
+  const managerName = [manager.first_name, manager.last_name]
+    .filter(Boolean)
+    .join(" ");
+
+  return managerName || (ROLE_LABELS[manager.role] ?? manager.role);
+};
+
 export function SalesList() {
   return (
     <List
@@ -58,8 +97,12 @@ export function SalesList() {
         <DataTable.Col source="email" />
         <DataTable.Col source="designation" />
         <DataTable.Col source="role" />
-        <DataTable.Col source="region_id" label="Region" />
-        <DataTable.Col source="reports_to_user_id" label="Reports To" />
+        <DataTable.Col label="Region">
+          <RegionField />
+        </DataTable.Col>
+        <DataTable.Col label="Reports To">
+          <ReportsToField />
+        </DataTable.Col>
         <DataTable.Col label={false}>
           <OptionsField />
         </DataTable.Col>

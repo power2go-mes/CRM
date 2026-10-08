@@ -55,7 +55,7 @@
     "portBase": 5300,
     "portArg": "--port",
     "strictPortArg": "--strictPort",
-    "hashRouting": true
+    "hashRouting": false
   },
   "deploy": {
     "adapter": "supabase",

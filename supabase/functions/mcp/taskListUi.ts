@@ -90,7 +90,7 @@ export const TASK_LIST_HTML = /*html*/ `
   const root = document.getElementById('app');
 
   const contactUrl = (id) =>
-    CRM_BASE_URL ? CRM_BASE_URL + '/#/contacts/' + id + '/show' : '';
+    CRM_BASE_URL ? CRM_BASE_URL + '/contacts/' + id + '/show' : '';
 
   const formatDate = (value) => {
     const d = new Date(value);

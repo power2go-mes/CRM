@@ -1,9 +1,20 @@
 import { Suspense, type ReactNode } from "react";
 import { ErrorBoundary } from "react-error-boundary";
+import { useCanAccess } from "ra-core";
 import { Notification } from "@/components/admin/notification";
 import { Error } from "@/components/admin/error";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart3, BriefcaseBusiness, Building2, FileText, Home, MapPinned, Settings, ShieldCheck, Users } from "lucide-react";
+import {
+  BarChart3,
+  BriefcaseBusiness,
+  Building2,
+  FileText,
+  Home,
+  MapPinned,
+  Settings,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 import { Link, useLocation } from "react-router";
 
 import { DataImportProvider } from "../dataImport/DataImportProvider";
@@ -20,13 +31,30 @@ const sidebarItems = [
 ];
 
 const managementItems = [
-  { label: "Users & Roles", to: "/users", icon: ShieldCheck },
-  { label: "Regions", to: "/regions", icon: MapPinned },
+  {
+    label: "Users & Roles",
+    to: "/users",
+    icon: ShieldCheck,
+    resource: "users",
+  },
+  { label: "Regions", to: "/regions", icon: MapPinned, resource: "regions" },
 ];
 
 export const Layout = ({ children }: { children: ReactNode }) => {
   useConfigurationLoader();
   const location = useLocation();
+  const usersAccess = useCanAccess({ resource: "users", action: "list" });
+  const regionsAccess = useCanAccess({ resource: "regions", action: "list" });
+  const settingsAccess = useCanAccess({
+    resource: "configuration",
+    action: "edit",
+  });
+  const canListUsers = !usersAccess.isPending && usersAccess.canAccess;
+  const canListRegions = !regionsAccess.isPending && regionsAccess.canAccess;
+  const canEditSettings = !settingsAccess.isPending && settingsAccess.canAccess;
+  const visibleManagementItems = managementItems.filter(({ resource }) =>
+    resource === "users" ? canListUsers : canListRegions,
+  );
 
   return (
     <DataImportProvider>
@@ -39,15 +67,23 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                   <span className="text-sm font-bold text-white">F</span>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-200/80">CRM</p>
-                  <h2 className="text-lg font-semibold tracking-[-0.03em] text-white">FINLONEXA</h2>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-200/80">
+                    CRM
+                  </p>
+                  <h2 className="text-lg font-semibold tracking-[-0.03em] text-white">
+                    FINLONEXA
+                  </h2>
                 </div>
               </div>
 
               <nav className="flex-1 space-y-3 px-3 py-4">
-                <div className="px-2 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">Sales</div>
+                <div className="px-2 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                  Sales
+                </div>
                 {sidebarItems.map(({ label, to, icon: Icon }) => {
-                  const isActive = location.pathname === to || (to !== "/" && location.pathname.startsWith(to));
+                  const isActive =
+                    location.pathname === to ||
+                    (to !== "/" && location.pathname.startsWith(to));
                   return (
                     <Link
                       key={to}
@@ -64,35 +100,45 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                   );
                 })}
 
-                <div className="mt-6 px-2 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">Management</div>
-                {managementItems.map(({ label, to, icon: Icon }) => {
-                  const isActive = location.pathname === to || location.pathname.startsWith(to);
-                  return (
-                    <Link
-                      key={to}
-                      to={to}
-                      className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                        isActive
-                          ? "bg-primary text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)]"
-                          : "text-slate-300 hover:bg-slate-800/80 hover:text-white"
-                      }`}
-                    >
-                      <Icon className="size-4 shrink-0" />
-                      <span>{label}</span>
-                    </Link>
-                  );
-                })}
+                {visibleManagementItems.length > 0 && (
+                  <>
+                    <div className="mt-6 px-2 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      Management
+                    </div>
+                    {visibleManagementItems.map(({ label, to, icon: Icon }) => {
+                      const isActive =
+                        location.pathname === to ||
+                        location.pathname.startsWith(to);
+                      return (
+                        <Link
+                          key={to}
+                          to={to}
+                          className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                            isActive
+                              ? "bg-primary text-white shadow-[0_16px_30px_rgba(37,99,235,0.35)]"
+                              : "text-slate-300 hover:bg-slate-800/80 hover:text-white"
+                          }`}
+                        >
+                          <Icon className="size-4 shrink-0" />
+                          <span>{label}</span>
+                        </Link>
+                      );
+                    })}
+                  </>
+                )}
               </nav>
 
-              <div className="border-t border-white/10 px-3 py-3">
-                <Link
-                  to="/settings"
-                  className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800/80 hover:text-white"
-                >
-                  <Settings className="size-4" />
-                  Settings
-                </Link>
-              </div>
+              {canEditSettings && (
+                <div className="border-t border-white/10 px-3 py-3">
+                  <Link
+                    to="/settings"
+                    className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800/80 hover:text-white"
+                  >
+                    <Settings className="size-4" />
+                    Settings
+                  </Link>
+                </div>
+              )}
             </div>
           </aside>
 
@@ -100,7 +146,9 @@ export const Layout = ({ children }: { children: ReactNode }) => {
             <Header />
             <main className="crm-shell pt-2" id="main-content">
               <ErrorBoundary FallbackComponent={Error}>
-                <Suspense fallback={<Skeleton className="h-12 w-12 rounded-full" />}>
+                <Suspense
+                  fallback={<Skeleton className="h-12 w-12 rounded-full" />}
+                >
                   {children}
                 </Suspense>
               </ErrorBoundary>
