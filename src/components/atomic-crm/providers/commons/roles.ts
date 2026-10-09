@@ -29,11 +29,11 @@ export const ROLE_LABELS: Record<CrmRole, string> = {
 
 export const PARENT_ROLES: Record<CrmRole, CrmRole | null> = {
   [ROLE.SUPER_ADMIN]: null,
-  [ROLE.HEAD_OF_SALES]: null,
-  [ROLE.RSM]: null,
+  [ROLE.HEAD_OF_SALES]: ROLE.SUPER_ADMIN,
+  [ROLE.RSM]: ROLE.HEAD_OF_SALES,
   [ROLE.SSM]: ROLE.RSM,
   [ROLE.ASM]: ROLE.SSM,
-  [ROLE.BDO]: ROLE.SSM,
+  [ROLE.BDO]: ROLE.ASM,
 };
 
 export const isSuperAdmin = (role: string | null | undefined) =>

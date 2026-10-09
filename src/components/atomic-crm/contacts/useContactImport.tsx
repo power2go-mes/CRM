@@ -3,8 +3,8 @@ import { useCallback, useMemo } from "react";
 
 import type { Tag } from "../types";
 import { createEachRow } from "../dataImport/createEachRow";
-import { fetchRecordsWithCache } from "../dataImport/fetchRecordsWithCache";
 import { useCompanyResolver } from "../dataImport/useCompanyResolver";
+import { resolveTagsWithCache } from "../tags/tagUtils";
 
 export type ContactImportSchema = {
   first_name: string;
@@ -41,16 +41,7 @@ export function useContactImport() {
   const tagsCache = useMemo(() => new Map<string, Tag>(), [dataProvider]);
   const getTags = useCallback(
     async (names: string[]) =>
-      fetchRecordsWithCache<Tag>(
-        "tags",
-        tagsCache,
-        names,
-        (name) => ({
-          name,
-          color: "#f9f9f9",
-        }),
-        dataProvider,
-      ),
+      resolveTagsWithCache(names, tagsCache, dataProvider),
     [tagsCache, dataProvider],
   );
 
@@ -103,6 +94,9 @@ export function useContactImport() {
             const tagList = parseTags(tagNames)
               .map((name) => tags.get(name))
               .filter((tag): tag is Tag => !!tag);
+            const uniqueTagList = [
+              ...new Map(tagList.map((tag) => [tag.id, tag])).values(),
+            ];
 
             return dataProvider.create("contacts", {
               data: {
@@ -122,7 +116,7 @@ export function useContactImport() {
                 has_newsletter,
                 status,
                 company_id: company?.id,
-                tags: tagList.map((tag) => tag.id),
+                tags: uniqueTagList.map((tag) => tag.id),
                 sales_id: user?.identity?.id,
                 linkedin_url,
               },

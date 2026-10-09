@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { Mobile } from "./TaskCreateSheet.stories";
+import { LeadFollowUp, Mobile } from "./TaskCreateSheet.stories";
 import { useDataProvider, type DataProvider } from "ra-core";
 import { buildContact } from "@/test/StoryWrapper";
 
@@ -104,5 +104,48 @@ describe("TaskCreateSheet", () => {
     });
     expect(updatedContact.data.last_seen).not.toBe(originalLastSeen);
     expect(updatedContact.data.nb_tasks).toBe(1);
+  });
+
+  it("creates a lead follow-up without requiring a contact and closes on success", async () => {
+    let dataProvider: DataProvider | null = null;
+    const DataProviderListener = () => {
+      dataProvider = useDataProvider();
+      return null;
+    };
+
+    const screen = await render(
+      <LeadFollowUp>
+        <DataProviderListener />
+      </LeadFollowUp>,
+    );
+
+    await screen.getByLabelText(/description/i).fill("Call the lead tomorrow");
+    const [typeInput] = screen.getByRole("combobox").all();
+    await typeInput.click();
+    await screen.getByRole("listbox").getByText("Call").click();
+
+    const dueDateInput = screen.getByLabelText(/due date/i);
+    await dueDateInput.clear();
+    await dueDateInput.fill("2026-03-06T12:30");
+
+    await screen.getByRole("button", { name: /^save$/i }).click();
+
+    await expect.element(screen.getByText("Task added")).toBeInTheDocument();
+    await expect
+      .element(screen.getByText("Create Lead Follow-up"))
+      .not.toBeInTheDocument();
+
+    const tasks = await dataProvider!.getList("tasks", {
+      filter: {},
+      pagination: { page: 1, perPage: 10 },
+      sort: { field: "id", order: "ASC" },
+    });
+    expect(tasks.data).toContainEqual(
+      expect.objectContaining({
+        lead_id: 101,
+        text: "Call the lead tomorrow",
+        type: "call",
+      }),
+    );
   });
 });

@@ -33,8 +33,8 @@ export const TaskCreateSheet = ({
   const selectContact = contact_id == null && lead_id == null;
   const { data: contact } = useGetOne(
     "contacts",
-    { id: contact_id! },
-    { enabled: !selectContact },
+    { id: contact_id ?? 0 },
+    { enabled: contact_id != null },
   );
   const [update] = useUpdate();
   const dataProvider = useDataProvider();
@@ -45,19 +45,21 @@ export const TaskCreateSheet = ({
 
   const handleSuccess = async (data: any) => {
     const referenceRecordId = data[foreignKeyMapping["contacts"]];
-    if (!referenceRecordId) return;
-    const { data: contact } = await dataProvider.getOne("contacts", {
-      id: referenceRecordId,
-    });
-    if (!contact) return;
-    await update("contacts", {
-      id: referenceRecordId as unknown as Identifier,
-      data: { last_seen: new Date().toISOString() },
-      previousData: contact,
-    });
-    queryClient.invalidateQueries({
-      queryKey: ["contacts", "getOne"],
-    });
+    if (referenceRecordId) {
+      const { data: contact } = await dataProvider.getOne("contacts", {
+        id: referenceRecordId,
+      });
+      if (contact) {
+        await update("contacts", {
+          id: referenceRecordId as unknown as Identifier,
+          data: { last_seen: new Date().toISOString() },
+          previousData: contact,
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["contacts", "getOne"],
+        });
+      }
+    }
 
     notify("resources.tasks.added");
     // No redirect, only close the sheet
@@ -69,11 +71,13 @@ export const TaskCreateSheet = ({
       resource="tasks"
       title={
         <span className="text-xl font-semibold truncate pr-10">
-          {!selectContact
+          {contact_id != null
             ? translate("resources.tasks.dialog.create_for", {
                 name: getContactRepresentation(contact!),
               })
-            : lead_id != null ? "Create Lead Follow-up" : translate("resources.tasks.dialog.create")}
+            : lead_id != null
+              ? "Create Lead Follow-up"
+              : translate("resources.tasks.dialog.create")}
         </span>
       }
       redirect={false}

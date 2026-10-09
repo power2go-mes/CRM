@@ -16,16 +16,19 @@ import { ResponsiveFilters } from "../misc/ResponsiveFilters";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ActiveFilterButton } from "../misc/ActiveFilterButton";
 import { AccountManagerFilter } from "../sales/AccountManagerInput";
+import type { Tag as CrmTag } from "../types";
+import { getUniqueTags } from "../tags/tagUtils";
 
 export const ContactListFilter = () => {
   const { noteStatuses } = useConfigurationContext();
   const isMobile = useIsMobile();
   const { identity } = useGetIdentity();
   const translate = useTranslate();
-  const { data } = useGetList("tags", {
+  const { data } = useGetList<CrmTag>("tags", {
     pagination: { page: 1, perPage: 10 },
     sort: { field: "name", order: "ASC" },
   });
+  const tags = getUniqueTags(data ?? []);
 
   return (
     <ResponsiveFilters
@@ -107,26 +110,25 @@ export const ContactListFilter = () => {
       </FilterCategory>
 
       <FilterCategory label="resources.contacts.filters.tags" icon={<Tag />}>
-        {data &&
-          data.map((record) => (
-            <ToggleFilterButton
-              className="w-auto md:w-full justify-between h-10 md:h-8"
-              key={record.id}
-              label={
-                <Badge
-                  variant="secondary"
-                  className="text-black text-sm md:text-xs font-normal cursor-pointer"
-                  style={{
-                    backgroundColor: record?.color,
-                  }}
-                >
-                  {record?.name}
-                </Badge>
-              }
-              value={{ "tags@cs": `{${record.id}}` }}
-              size={isMobile ? "lg" : undefined}
-            />
-          ))}
+        {tags.map((record) => (
+          <ToggleFilterButton
+            className="w-auto md:w-full justify-between h-10 md:h-8"
+            key={record.id}
+            label={
+              <Badge
+                variant="secondary"
+                className="text-black text-sm md:text-xs font-normal cursor-pointer"
+                style={{
+                  backgroundColor: record?.color,
+                }}
+              >
+                {record?.name}
+              </Badge>
+            }
+            value={{ "tags@cs": `{${record.id}}` }}
+            size={isMobile ? "lg" : undefined}
+          />
+        ))}
       </FilterCategory>
 
       <FilterCategory
@@ -163,10 +165,11 @@ export const ContactListFilter = () => {
 export const ContactListFilterSummary = () => {
   const { noteStatuses } = useConfigurationContext();
   const { identity } = useGetIdentity();
-  const { data } = useGetList("tags", {
+  const { data } = useGetList<CrmTag>("tags", {
     pagination: { page: 1, perPage: 10 },
     sort: { field: "name", order: "ASC" },
   });
+  const tags = getUniqueTags(data ?? []);
   const { filterValues } = useListContext();
   const hasFilters = !!Object.entries(filterValues || {}).filter(
     ([key]) => key !== "q",
@@ -232,25 +235,24 @@ export const ContactListFilterSummary = () => {
         />
       ))}
 
-      {data &&
-        data.map((record) => (
-          <ActiveFilterButton
-            className="w-auto justify-between h-8"
-            key={record.id}
-            label={
-              <Badge
-                variant="secondary"
-                className="text-black text-sm md:text-xs font-normal cursor-pointer"
-                style={{
-                  backgroundColor: record?.color,
-                }}
-              >
-                {record?.name}
-              </Badge>
-            }
-            value={{ "tags@cs": `{${record.id}}` }}
-          />
-        ))}
+      {tags.map((record) => (
+        <ActiveFilterButton
+          className="w-auto justify-between h-8"
+          key={record.id}
+          label={
+            <Badge
+              variant="secondary"
+              className="text-black text-sm md:text-xs font-normal cursor-pointer"
+              style={{
+                backgroundColor: record?.color,
+              }}
+            >
+              {record?.name}
+            </Badge>
+          }
+          value={{ "tags@cs": `{${record.id}}` }}
+        />
+      ))}
 
       <ActiveFilterButton
         className="w-auto justify-between h-8"

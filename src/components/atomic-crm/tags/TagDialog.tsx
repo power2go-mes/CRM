@@ -10,7 +10,7 @@ import { TagForm } from "./TagForm";
 
 type TagDialogProps = {
   open: boolean;
-  tag?: Pick<Tag, "name" | "color">;
+  tag?: Pick<Tag, "id" | "name" | "color">;
   title: string;
   onSubmit(tag: Pick<Tag, "name" | "color">): Promise<void>;
   onClose(): void;

@@ -5,6 +5,7 @@ import { Notification } from "@/components/admin/notification";
 import { Error } from "@/components/admin/error";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  ArrowLeft,
   BarChart3,
   BriefcaseBusiness,
   Building2,
@@ -15,7 +16,8 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import { Link, useLocation } from "react-router";
+import { Button } from "@/components/ui/button";
+import { Link, useLocation, useNavigate } from "react-router";
 
 import { DataImportProvider } from "../dataImport/DataImportProvider";
 import { useConfigurationLoader } from "../root/useConfigurationLoader";
@@ -43,6 +45,7 @@ const managementItems = [
 export const Layout = ({ children }: { children: ReactNode }) => {
   useConfigurationLoader();
   const location = useLocation();
+  const navigate = useNavigate();
   const usersAccess = useCanAccess({ resource: "users", action: "list" });
   const regionsAccess = useCanAccess({ resource: "regions", action: "list" });
   const settingsAccess = useCanAccess({
@@ -144,6 +147,25 @@ export const Layout = ({ children }: { children: ReactNode }) => {
 
           <div className="min-w-0 flex-1">
             <Header />
+            <div className="py-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const historyIndex = window.history.state?.idx;
+                  if (typeof historyIndex === "number" && historyIndex > 0) {
+                    navigate(-1);
+                  } else {
+                    navigate("/");
+                  }
+                }}
+                aria-label="Go to previous page"
+              >
+                <ArrowLeft aria-hidden="true" />
+                Back
+              </Button>
+            </div>
             <main className="crm-shell pt-2" id="main-content">
               <ErrorBoundary FallbackComponent={Error}>
                 <Suspense

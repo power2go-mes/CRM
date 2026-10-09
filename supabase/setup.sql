@@ -40,71 +40,73 @@ security definer
 set search_path = public
 as $$
 declare
-  manager_role text;
-  manager_disabled boolean;
-  expected_manager_role text;
-  has_cycle boolean;
+  manager public.sales%rowtype;
+  expected_role text;
 begin
-  if new.reports_to_user_id is null then
-    if new.role not in ('super_admin', 'head_of_sales', 'rsm') then
-      raise exception 'A manager is required for role %', new.role;
+  if new.role in ('rsm', 'ssm', 'asm', 'bdo') and new.region_id is null then
+    raise exception 'Region is required for role %', new.role;
+  end if;
+  if new.role in ('super_admin', 'head_of_sales') and new.region_id is not null then
+    raise exception 'Region must be empty for role %', new.role;
+  end if;
+  if new.role = 'super_admin' then
+    if new.reports_to_user_id is not null then
+      raise exception 'Super Admin cannot report to another user';
     end if;
     return new;
   end if;
-
+  if new.reports_to_user_id is null then
+    raise exception 'A manager is required for role %', new.role;
+  end if;
   if new.reports_to_user_id = new.user_id then
     raise exception 'A user cannot report to themselves';
   end if;
-
-  select role, disabled
-  into manager_role, manager_disabled
-  from public.sales
-  where user_id = new.reports_to_user_id;
-
-  if manager_role is null then
-    raise exception 'Reports to user does not exist';
+  select * into manager from public.sales where user_id = new.reports_to_user_id;
+  if not found or manager.disabled then
+    raise exception 'Reports To user does not exist or is inactive';
   end if;
-  if manager_disabled then
-    raise exception 'A user cannot report to an inactive user';
-  end if;
-
-  expected_manager_role := case new.role
+  expected_role := case new.role
+    when 'head_of_sales' then 'super_admin'
+    when 'rsm' then 'head_of_sales'
     when 'ssm' then 'rsm'
     when 'asm' then 'ssm'
-    when 'bdo' then 'ssm'
-    else null
+    when 'bdo' then 'asm'
   end;
-
-  if expected_manager_role is null then
-    raise exception 'Role % cannot report to another user', new.role;
-  end if;
-  if manager_role <> expected_manager_role then
+  if manager.role <> expected_role then
     raise exception 'Invalid reporting hierarchy for role %', new.role;
   end if;
-
-  with recursive ancestors(user_id) as (
-    select new.reports_to_user_id
-    union all
-    select sales.reports_to_user_id
-    from public.sales
-    join ancestors on sales.user_id = ancestors.user_id
-    where sales.reports_to_user_id is not null
-  )
-  select exists (select 1 from ancestors where user_id = new.user_id)
-  into has_cycle;
-
-  if has_cycle then
+  if new.role in ('ssm', 'asm', 'bdo')
+    and manager.region_id is distinct from new.region_id then
+    raise exception 'Manager and subordinate must belong to the same region';
+  end if;
+  if tg_op = 'UPDATE' and old.region_id is distinct from new.region_id and exists (
+    select 1 from public.sales child
+    where child.reports_to_user_id = new.user_id
+      and child.region_id is distinct from new.region_id
+  ) then
+    raise exception 'Reassign direct reports before changing this manager region';
+  end if;
+  if exists (
+    with recursive ancestors(user_id) as (
+      select new.reports_to_user_id
+      union all
+      select sales.reports_to_user_id
+      from public.sales
+      join ancestors on sales.user_id = ancestors.user_id
+      where sales.reports_to_user_id is not null
+    )
+    select 1 from ancestors where user_id = new.user_id
+  ) then
     raise exception 'Reporting hierarchy cannot contain cycles';
   end if;
-
   return new;
 end;
 $$;
 
 drop trigger if exists validate_sales_hierarchy_trigger on public.sales;
 create constraint trigger validate_sales_hierarchy_trigger
-after insert or update of role, reports_to_user_id, disabled on public.sales
-deferrable initially deferred
+after insert or update of role, reports_to_user_id, region_id, disabled on public.sales
+deferrable initially immediate
 for each row execute function public.validate_sales_hierarchy();
 
 create or replace function public.prevent_last_super_admin()

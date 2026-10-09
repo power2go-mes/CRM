@@ -357,6 +357,10 @@ export const frenchCrmMessages = {
         edit_title: "Modifier l'étiquette",
         name_label: "Nom de l'étiquette",
         name_placeholder: "Saisir le nom de l'étiquette",
+        duplicate_name: "Une étiquette portant ce nom existe déjà.",
+        duplicate_color: "Une autre étiquette utilise déjà cette couleur.",
+        color_in_use:
+          "Cette couleur est déjà utilisée par une autre étiquette.",
       },
     },
   },

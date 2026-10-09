@@ -19,6 +19,7 @@ import {
 import { TagChip } from "../tags/TagChip";
 import { TagCreateModal } from "../tags/TagCreateModal";
 import { useTags } from "../tags/useTags";
+import { getUniqueTags } from "../tags/tagUtils";
 import type { Contact, Tag } from "../types";
 
 export const TagsListEdit = () => {
@@ -34,6 +35,7 @@ export const TagsListEdit = () => {
     { ids: record?.tags },
     { enabled: record && record.tags && record.tags.length > 0 },
   );
+  const uniqueAssignedTags = getUniqueTags(tags ?? []);
   const [update] = useUpdate<Contact>();
 
   const unselectedTags =
@@ -100,7 +102,7 @@ export const TagsListEdit = () => {
 
   return (
     <div className="flex flex-wrap gap-2">
-      {tags?.map((tag) => (
+      {uniqueAssignedTags.map((tag) => (
         <div key={tag.id}>
           <TagChip tag={tag} onUnlink={() => handleTagDelete(tag.id)} />
         </div>
@@ -119,7 +121,7 @@ export const TagsListEdit = () => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            {unselectedTags?.map((tag) => (
+            {getUniqueTags(unselectedTags ?? []).map((tag) => (
               <DropdownMenuItem
                 key={tag.id}
                 onClick={() => handleTagAdd(tag.id)}

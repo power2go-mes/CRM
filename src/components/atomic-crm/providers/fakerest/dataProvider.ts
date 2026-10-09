@@ -187,12 +187,16 @@ export const createDataProvider = ({
       if (resource === "regions") {
         const result = await baseDataProvider.getList<Region>(resource, params);
         const sales = await baseDataProvider.getList<Sale>("sales", {
-          filter: {}, pagination: { page: 1, perPage: 10_000 }, sort: { field: "id", order: "ASC" },
+          filter: {},
+          pagination: { page: 1, perPage: 10_000 },
+          sort: { field: "id", order: "ASC" },
         });
         return {
           ...result,
           data: result.data.map((region) => {
-            const users = sales.data.filter((sale) => sale.region_id === region.id && !sale.disabled);
+            const users = sales.data.filter(
+              (sale) => sale.region_id === region.id && !sale.disabled,
+            );
             return {
               ...region,
               user_count: users.length,
@@ -330,7 +334,9 @@ export const createDataProvider = ({
             sort: { field: "id", order: "ASC" },
           });
           if (linked.total) {
-            throw new Error("Region cannot be deleted because active CRM data is associated with it.");
+            throw new Error(
+              "Region cannot be deleted because active CRM data is associated with it.",
+            );
           }
           return params;
         },
@@ -483,6 +489,7 @@ export const createDataProvider = ({
         afterCreate: async (result, dataProvider) => {
           // update the task count in the related contact
           const { contact_id } = result.data;
+          if (contact_id == null) return result;
           const { data: contact } = await dataProvider.getOne("contacts", {
             id: contact_id,
           });
@@ -509,6 +516,7 @@ export const createDataProvider = ({
         afterUpdate: async (result, dataProvider) => {
           // update the contact: if the task is done, decrement the nb tasks, otherwise increment it
           const { contact_id } = result.data;
+          if (contact_id == null) return result;
           const { data: contact } = await dataProvider.getOne("contacts", {
             id: contact_id,
           });
@@ -529,6 +537,7 @@ export const createDataProvider = ({
         afterDelete: async (result, dataProvider) => {
           // update the task count in the related contact
           const { contact_id } = result.data;
+          if (contact_id == null) return result;
           const { data: contact } = await dataProvider.getOne("contacts", {
             id: contact_id,
           });

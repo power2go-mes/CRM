@@ -44,3 +44,19 @@ export const Mobile = ({
 Mobile.globals = {
   viewport: { value: "mobile1", isRotated: false },
 };
+
+export const LeadFollowUp = ({
+  children,
+  data = {},
+}: {
+  children?: ReactNode;
+  data?: any;
+}) => {
+  const [open, setOpen] = useState(true);
+  return (
+    <StoryWrapper data={data}>
+      <TaskCreateSheet open={open} onOpenChange={setOpen} lead_id={101} />
+      {children}
+    </StoryWrapper>
+  );
+};

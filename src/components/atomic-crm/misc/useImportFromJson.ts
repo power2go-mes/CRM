@@ -10,7 +10,7 @@ import { JSONParser, type JsonTypes } from "@streamparser/json-whatwg";
 import mime from "mime/lite";
 import type { CrmDataProvider } from "../providers/types";
 import type { RAFile, Tag } from "../types";
-import { colors } from "../tags/colors";
+import { resolveTagsWithCache } from "../tags/tagUtils";
 import { mapSizeToCategory } from "../companies/sizes";
 import { useConfigurationContext } from "../root/ConfigurationContext";
 import { contactGender } from "../contacts/contactModel";
@@ -132,13 +132,12 @@ export const useImportFromJson = (): [
       sales: Record<number, Identifier>;
       companies: Record<number, Identifier>;
       contacts: Record<number, Identifier>;
-      tags: Record<string, Identifier>;
     } = {
       sales: {},
       companies: {},
       contacts: {},
-      tags: {},
     };
+    const tagsCache = new Map<string, Tag>();
 
     const importSale = async (
       dataToImport: JsonTypes.JsonPrimitive | JsonTypes.JsonStruct | undefined,
@@ -346,21 +345,14 @@ export const useImportFromJson = (): [
 
         let tagsIds: Array<Identifier> = [];
         if (dataToImport.tags && Array.isArray(dataToImport.tags)) {
-          tagsIds = await Promise.all(
-            dataToImport.tags.map(async (tag) => {
-              if (idsMaps.tags[tag]) {
-                return idsMaps.tags[tag];
-              }
-              const { data } = await dataProvider.create<Tag>("tags", {
-                data: {
-                  name: tag,
-                  color: colors[Math.floor(Math.random() * colors.length)],
-                },
-              });
-              idsMaps.tags[tag] = data.id;
-              return data.id;
-            }),
+          const importedTags = await resolveTagsWithCache(
+            dataToImport.tags,
+            tagsCache,
+            dataProvider,
           );
+          tagsIds = [
+            ...new Set([...importedTags.values()].map((tag) => tag.id)),
+          ];
         }
 
         const { data } = await dataProvider.create("contacts", {

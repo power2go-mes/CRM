@@ -9,11 +9,13 @@ import { cn } from "@/lib/utils";
 import type { Tag } from "../types";
 import { colors } from "./colors";
 import { RoundButton } from "./RoundButton";
+import { useTags } from "./useTags";
+import { normalizeTagColor, normalizeTagName } from "./tagUtils";
 
 type TagFormProps = {
   open: boolean;
   cancelLabel?: string;
-  tag?: Pick<Tag, "name" | "color">;
+  tag?: Pick<Tag, "id" | "name" | "color">;
   onCancel?(): void;
   onSubmit(tag: Pick<Tag, "name" | "color">): Promise<void>;
 };
@@ -29,6 +31,21 @@ export function TagForm({
   const [newTagName, setNewTagName] = useState("");
   const [newTagColor, setNewTagColor] = useState(colors[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { data: tags = [], isPending: isPendingTags } = useTags({
+    enabled: open,
+  });
+  const nameConflict = tags.some(
+    (existingTag) =>
+      existingTag.id !== tag?.id &&
+      normalizeTagName(existingTag.name) === normalizeTagName(newTagName),
+  );
+  const colorIsInUse = (color: string) =>
+    tags.some(
+      (existingTag) =>
+        existingTag.id !== tag?.id &&
+        normalizeTagColor(existingTag.color) === normalizeTagColor(color),
+    );
+  const colorConflict = colorIsInUse(newTagColor);
 
   const handleNewTagNameChange = (event: ChangeEvent<HTMLInputElement>) => {
     setNewTagName(event.target.value);
@@ -68,7 +85,13 @@ export function TagForm({
             value={newTagName}
             onChange={handleNewTagNameChange}
             placeholder={translate("resources.tags.dialog.name_placeholder")}
+            aria-invalid={nameConflict}
           />
+          {nameConflict ? (
+            <p className="text-sm text-destructive" role="alert">
+              {translate("resources.tags.dialog.duplicate_name")}
+            </p>
+          ) : null}
         </div>
 
         <div className="space-y-2">
@@ -79,12 +102,24 @@ export function TagForm({
                 key={color}
                 color={color}
                 selected={color === newTagColor}
+                disabled={colorIsInUse(color)}
+                aria-label={color}
+                title={
+                  colorIsInUse(color)
+                    ? translate("resources.tags.dialog.color_in_use")
+                    : color
+                }
                 handleClick={() => {
                   setNewTagColor(color);
                 }}
               />
             ))}
           </div>
+          {colorConflict ? (
+            <p className="text-sm text-destructive" role="alert">
+              {translate("resources.tags.dialog.duplicate_color")}
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -102,7 +137,13 @@ export function TagForm({
         <Button
           type="submit"
           variant="outline"
-          disabled={isSubmitting || !newTagName.trim()}
+          disabled={
+            isSubmitting ||
+            isPendingTags ||
+            !newTagName.trim() ||
+            nameConflict ||
+            colorConflict
+          }
           className={cn(
             buttonVariants({ variant: "outline" }),
             "text-primary",

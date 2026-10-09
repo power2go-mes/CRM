@@ -21,6 +21,7 @@ import {
 import { TagForm } from "../tags/TagForm";
 import { useCreateTag } from "../tags/useCreateTag";
 import { useTags } from "../tags/useTags";
+import { getUniqueTags } from "../tags/tagUtils";
 import type { Contact, Tag } from "../types";
 
 type BulkTagDialogMode = "select" | "create";
@@ -47,6 +48,7 @@ export function BulkTagButton() {
   const { data: tags = [], isPending: isPendingTags } = useTags({
     enabled: open,
   });
+  const uniqueTags = getUniqueTags(tags);
 
   const closeDialog = useCallback(() => {
     setOpen(false);
@@ -151,8 +153,8 @@ export function BulkTagButton() {
                   <p className="text-sm text-muted-foreground">
                     {translate("crm.common.loading")}
                   </p>
-                ) : tags.length > 0 ? (
-                  tags.map((tag) => (
+                ) : uniqueTags.length > 0 ? (
+                  uniqueTags.map((tag) => (
                     <Button
                       key={tag.id}
                       type="button"
